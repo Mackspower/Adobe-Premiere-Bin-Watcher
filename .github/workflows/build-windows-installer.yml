@@ -1,0 +1,43 @@
+name: Build Windows installer
+
+# Builds packaging/windows-installer/BinWatcher.iss into a real Setup.exe on a
+# GitHub-hosted Windows runner - no local Windows machine (or Wine/VM on Mac)
+# needed. Runs automatically whenever a GitHub Release is published, and
+# attaches the built .exe to that same release. Can also be run manually
+# from the Actions tab for a one-off test build (as a plain downloadable
+# artifact, not attached to any release).
+
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Compile installer
+        shell: pwsh
+        run: |
+          & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" packaging\windows-installer\BinWatcher.iss
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BinWatcherSetup
+          path: packaging/dist/BinWatcherSetup.exe
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: packaging/dist/BinWatcherSetup.exe
