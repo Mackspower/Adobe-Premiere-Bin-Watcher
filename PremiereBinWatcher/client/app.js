@@ -49,8 +49,10 @@
     const DEFAULT_EXTENSIONS =
         "mp4,mov,mxf,avi,mkv,braw,r3d,ari,dpx,mp3,wav,aif,aiff,m4a,jpg,jpeg,png,tif,tiff,psd,gif";
 
+    const NEW_BIN_VALUE = "__new__";
+
     let state = {
-        watches: [], // { id, folder, bin, enabled }
+        watches: [], // { id, folder, binPath: [names...], binLabel, enabled }
         pollSeconds: 3,
         extensions: DEFAULT_EXTENSIONS
     };
@@ -83,6 +85,21 @@
         } catch (e) {
             log("Failed to load saved settings: " + e.message);
         }
+
+        // Migrate watches saved by older versions (single "bin" name string
+        // instead of a binPath array, for top-level-only bins).
+        let migrated = false;
+        state.watches.forEach((w) => {
+            if (!w.binPath) {
+                w.binPath = [w.bin || "Untitled"];
+                migrated = true;
+            }
+            if (!w.binLabel) {
+                w.binLabel = w.binPath.join(" / ");
+                migrated = true;
+            }
+        });
+        if (migrated) saveState();
     }
 
     function saveState() {
@@ -111,7 +128,7 @@
     function pollWatch(watch) {
         fs.readdir(watch.folder, { withFileTypes: true }, (err, entries) => {
             if (err) {
-                log(`"${watch.bin}": can't read folder (${err.message})`);
+                log(`"${watch.binLabel}": can't read folder (${err.message})`);
                 return;
             }
 
@@ -153,18 +170,18 @@
     function importReady(watch, filenames) {
         const script = `pbw_importFiles(${JSON.stringify(watch.folder)}, ${JSON.stringify(
             JSON.stringify(filenames)
-        )}, ${JSON.stringify(watch.bin)})`;
+        )}, ${JSON.stringify(JSON.stringify(watch.binPath))})`;
 
         evalScript(script, (result) => {
             try {
                 const parsed = JSON.parse(result);
                 if (parsed.success && parsed.imported && parsed.imported.length) {
-                    log(`Imported into "${watch.bin}": ${parsed.imported.join(", ")}`);
+                    log(`Imported into "${watch.binLabel}": ${parsed.imported.join(", ")}`);
                 } else if (!parsed.success) {
-                    log(`Import failed for "${watch.bin}": ${parsed.error || "unknown error"}`);
+                    log(`Import failed for "${watch.binLabel}": ${parsed.error || "unknown error"}`);
                 }
             } catch (e) {
-                log(`Unexpected response for "${watch.bin}": ${result}`);
+                log(`Unexpected response for "${watch.binLabel}": ${result}`);
             }
         });
     }
@@ -211,7 +228,7 @@
                 <div class="top">
                     <div>
                         <span class="status-dot ${w.enabled ? "status-on" : "status-off"}"></span>
-                        <span class="bin-name">${escapeHtml(w.bin)}</span>
+                        <span class="bin-name">${escapeHtml(w.binLabel)}</span>
                     </div>
                     <div class="actions">
                         <button data-action="toggle" data-id="${w.id}">${w.enabled ? "Pause" : "Resume"}</button>
@@ -242,7 +259,7 @@
     }
 
     document.getElementById("browseBtn").addEventListener("click", () => {
-        log("Opening folder browser...");
+        log("Opening folder browser... (if no window appears, try Alt+Tab - it can open behind Premiere)");
         evalScript("pbw_selectFolder()", (result) => {
             log("Folder browser returned: " + JSON.stringify(result));
             if (result) {
@@ -252,27 +269,90 @@
         });
     });
 
+    function populateBinSelect(binPaths) {
+        const select = document.getElementById("binSelect");
+        const previousValue = select.value;
+        select.innerHTML = "";
+
+        binPaths
+            .slice()
+            .sort((a, b) => a.join(" / ").localeCompare(b.join(" / ")))
+            .forEach((p) => {
+                const opt = document.createElement("option");
+                opt.value = JSON.stringify(p);
+                opt.textContent = p.join(" / ");
+                select.appendChild(opt);
+            });
+
+        const newOpt = document.createElement("option");
+        newOpt.value = NEW_BIN_VALUE;
+        newOpt.textContent = "+ New top-level bin…";
+        select.appendChild(newOpt);
+
+        if (previousValue && Array.from(select.options).some((o) => o.value === previousValue)) {
+            select.value = previousValue;
+        } else if (binPaths.length === 0) {
+            select.value = NEW_BIN_VALUE;
+        }
+
+        updateNewBinVisibility();
+    }
+
+    function updateNewBinVisibility() {
+        const select = document.getElementById("binSelect");
+        const newBinInput = document.getElementById("newBinNameInput");
+        newBinInput.style.display = select.value === NEW_BIN_VALUE ? "" : "none";
+    }
+
+    function refreshBins() {
+        evalScript("pbw_listBins()", (result) => {
+            try {
+                const binPaths = JSON.parse(result);
+                populateBinSelect(binPaths);
+            } catch (e) {
+                log("Couldn't load bin list from the project: " + result);
+                populateBinSelect([]);
+            }
+        });
+    }
+
+    document.getElementById("binSelect").addEventListener("change", updateNewBinVisibility);
+    document.getElementById("refreshBinsBtn").addEventListener("click", refreshBins);
+
     document.getElementById("addBtn").addEventListener("click", () => {
-        const binName = document.getElementById("binNameInput").value.trim();
         if (!selectedFolder) {
             log("Pick a folder before adding a watch.");
             return;
         }
-        if (!binName) {
-            log("Enter a bin name before adding a watch.");
+
+        const select = document.getElementById("binSelect");
+        let binPath;
+        if (select.value === NEW_BIN_VALUE) {
+            const newName = document.getElementById("newBinNameInput").value.trim();
+            if (!newName) {
+                log("Enter a name for the new bin before adding a watch.");
+                return;
+            }
+            binPath = [newName];
+        } else if (select.value) {
+            binPath = JSON.parse(select.value);
+        } else {
+            log("Pick a bin before adding a watch.");
             return;
         }
 
-        const watch = { id: uid(), folder: selectedFolder, bin: binName, enabled: true };
+        const binLabel = binPath.join(" / ");
+        const watch = { id: uid(), folder: selectedFolder, binPath, binLabel, enabled: true };
         state.watches.push(watch);
         saveState();
         render();
         startWatch(watch);
-        log(`Watching "${selectedFolder}" -> bin "${binName}"`);
+        log(`Watching "${selectedFolder}" -> bin "${binLabel}"`);
 
         selectedFolder = "";
         updateFolderLabel();
-        document.getElementById("binNameInput").value = "";
+        document.getElementById("newBinNameInput").value = "";
+        refreshBins();
     });
 
     document.getElementById("watchList").addEventListener("click", (e) => {
@@ -319,5 +399,6 @@
     document.getElementById("extInput").value = state.extensions;
     render();
     restartAllTimers();
+    refreshBins();
     log("Bin Watcher ready.");
 })();

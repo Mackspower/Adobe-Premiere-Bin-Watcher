@@ -42,11 +42,16 @@ duplicate imports.
 
 ## Use
 
-1. Click **Browse folder…** and pick the folder you want watched.
-2. Type a bin name (it'll be created at the top level of your project if it doesn't
-   already exist).
+1. Click **Browse folder…** and pick the folder you want watched (the dialog can pop up
+   *behind* Premiere's main window — if nothing seems to happen, try Alt+Tab).
+2. Pick an existing bin from the **Bin** dropdown (this lists every bin already in your
+   project, including nested ones), or choose **+ New top-level bin…** and type a name
+   for a bin that doesn't exist yet.
 3. Click **+ Add Watch**.
 4. Drop files into that folder — they'll show up in the bin within a few seconds.
+
+Click **Refresh** next to the Bin dropdown if you've created a new bin in Premiere since
+opening the panel and want it to show up in the list.
 
 Watches are saved to `%APPDATA%\PremiereBinWatcher\config.json` and reload automatically
 next time you open the panel/project. You can pause/resume or remove a watch from the

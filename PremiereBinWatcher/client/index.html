@@ -14,7 +14,12 @@
             <button id="browseBtn">Browse folder&hellip;</button>
             <span id="folderPath" class="empty">No folder selected</span>
         </div>
-        <input type="text" id="binNameInput" placeholder="Bin name (created if it doesn't exist)">
+        <label for="binSelect">Bin</label>
+        <div class="row">
+            <select id="binSelect" class="grow"></select>
+            <button id="refreshBinsBtn" title="Reload bin list from the open project">Refresh</button>
+        </div>
+        <input type="text" id="newBinNameInput" placeholder="New top-level bin name" style="display:none;">
         <button id="addBtn" class="primary">+ Add Watch</button>
     </section>
 
