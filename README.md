@@ -40,6 +40,18 @@ duplicate imports.
 
 ### Windows
 
+**Easiest**: download `BinWatcherSetup.exe` from the
+[Releases page](https://github.com/mackspower/Adobe-Premiere-Bin-Watcher/releases) and
+run it — see the [plain-language walkthrough](INSTALL.md#windows) if you want the
+click-by-click version, including what the SmartScreen warning means and how to get
+past it. It's built automatically by
+[a GitHub Actions workflow](.github/workflows/build-windows-installer.yml) using the
+free [Inno Setup](https://jrsoftware.org/isinfo.php) compiler — being unsigned, it'll
+still show a SmartScreen "unknown publisher" prompt on first run, same trust story as
+the script below, just a nicer install experience.
+
+**Manual/script install**, if you'd rather not use the packaged installer:
+
 1. Download/clone this repo somewhere on your machine.
 2. Open PowerShell in that folder and run:
    ```powershell
@@ -52,13 +64,6 @@ duplicate imports.
    `HKCU:\Software\Adobe\CSXS.*`).
 3. Restart Premiere Pro.
 4. Open the panel from **Window > Extensions > Bin Watcher**.
-
-Prefer a normal installer wizard (`Setup.exe`) instead of running a script? See
-`packaging/windows-installer/` — it builds one with the free
-[Inno Setup](https://jrsoftware.org/isinfo.php) compiler. It's not compiled here
-(that needs Inno Setup installed on a Windows machine), and being unsigned it'll still
-show a SmartScreen "unknown publisher" prompt on first run — it's a nicer install
-experience, not a different trust story than the script above.
 
 ### macOS
 
