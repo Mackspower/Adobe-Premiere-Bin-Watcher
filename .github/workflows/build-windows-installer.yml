@@ -1,11 +1,13 @@
-name: Build Windows installer
+name: Build installers
 
-# Builds packaging/windows-installer/BinWatcher.iss into a real Setup.exe on a
-# GitHub-hosted Windows runner - no local Windows machine (or Wine/VM on Mac)
-# needed. Runs automatically whenever a GitHub Release is published, and
-# attaches the built .exe to that same release. Can also be run manually
-# from the Actions tab for a one-off test build (as a plain downloadable
-# artifact, not attached to any release).
+# Builds both installers on GitHub-hosted runners - no local Mac or Windows
+# machine needed for either:
+#   - packaging/windows-installer/BinWatcher.iss -> Setup.exe (Inno Setup)
+#   - packaging/build-dmg.sh                     -> BinWatcher.dmg (hdiutil)
+# Runs automatically whenever a GitHub Release is published, and attaches
+# both files to that same release. Can also be run manually from the
+# Actions tab for a one-off test build (as plain downloadable artifacts,
+# not attached to any release).
 
 on:
   workflow_dispatch:
@@ -16,7 +18,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
+  build-windows:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,3 +43,24 @@ jobs:
         with:
           tag_name: ${{ github.event.release.tag_name }}
           files: packaging/dist/BinWatcherSetup.exe
+
+  build-mac:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build DMG
+        run: bash packaging/build-dmg.sh
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: BinWatcherDMG
+          path: packaging/dist/BinWatcher.dmg
+
+      - name: Attach to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.release.tag_name }}
+          files: packaging/dist/BinWatcher.dmg
