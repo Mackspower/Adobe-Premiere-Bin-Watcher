@@ -11,6 +11,8 @@
 (function () {
     "use strict";
 
+    const APP_VERSION = 5;
+
     function log(msg) {
         try {
             const el = document.getElementById("log");
@@ -401,7 +403,7 @@
 
     // ---- init ----
 
-    log("Bin Watcher starting...");
+    log(`Bin Watcher starting... (build ${APP_VERSION})`);
     loadState();
     document.getElementById("pollInput").value = state.pollSeconds;
     document.getElementById("extInput").value = state.extensions;

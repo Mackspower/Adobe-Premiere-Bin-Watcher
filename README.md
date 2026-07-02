@@ -91,8 +91,21 @@ With Premiere open and the panel visible:
    to the panel, where you can see the Console tab for the exact error and stack trace.
 
 If you make changes and reinstall, re-run `install-windows.ps1` (it deletes and
-recopies the whole extension folder) and fully restart Premiere Pro — CEP panels are
-cached per-session, so edits to the files won't take effect until Premiere restarts.
+recopies the whole extension folder) and fully restart Premiere Pro.
+
+**"I reinstalled but nothing seems different / I'm seeing behavior that doesn't match
+the current code."**
+
+Premiere's embedded browser (CEF) can cache the panel's HTML/JS/CSS on disk, separate
+from the extension folder — restarting Premiere doesn't always clear it, so you can end
+up running an old build even after a clean reinstall. Every startup, the Activity log
+prints a line like `Bin Watcher starting... (build 5)`. Check that number against the
+highest `?v=N` in `client/index.html` on the `main`/branch you pulled — if the panel
+reports an older build, the cache is stale. Closing Premiere, reinstalling, and
+reopening should now force a fresh load (the build number is baked into the cached
+file's URL), but if it still won't budge, delete
+`%APPDATA%\Adobe\CEP\extensions\PremiereBinWatcher`, clear Premiere's media/disk cache
+from Edit > Preferences > Media Cache, and reinstall from scratch.
 
 ## Expanding later
 
