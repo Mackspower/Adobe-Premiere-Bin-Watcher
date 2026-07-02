@@ -168,9 +168,16 @@
     }
 
     function importReady(watch, filenames) {
-        const script = `pbw_importFiles(${JSON.stringify(watch.folder)}, ${JSON.stringify(
-            JSON.stringify(filenames)
-        )}, ${JSON.stringify(JSON.stringify(watch.binPath))})`;
+        // A single JSON payload, JSON.stringify'd exactly once for the
+        // ExtendScript call, rather than nesting JSON.stringify calls for
+        // each argument - fewer levels of escaping means fewer ways for the
+        // generated script text to end up malformed.
+        const payload = JSON.stringify({
+            folder: watch.folder,
+            files: filenames,
+            binPath: watch.binPath
+        });
+        const script = `pbw_importFiles(${JSON.stringify(payload)})`;
 
         evalScript(script, (result) => {
             try {
@@ -182,6 +189,7 @@
                 }
             } catch (e) {
                 log(`Unexpected response for "${watch.binLabel}": ${result}`);
+                log(`(payload sent: ${payload})`);
             }
         });
     }

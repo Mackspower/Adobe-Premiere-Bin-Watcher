@@ -57,20 +57,23 @@ function pbw_sepFor(folderPath) {
 }
 
 /**
- * Imports the given file names (found in folderPath) into the bin identified
- * by binPathJSON (a JSON-encoded array of names, root-to-leaf - see
- * pbw_resolveBinPath). Files already present in the bin (matched by project
- * item name) are skipped, so this is safe to call repeatedly with
- * overlapping lists.
+ * Imports files into a bin, given a single JSON-encoded payload:
+ *   { folder: "C:\\path\\to\\watched\\folder",
+ *     files: ["a.jpg", "b.mov"],
+ *     binPath: ["Footage", "Day1"] }
+ * (binPath is root-to-leaf - see pbw_resolveBinPath). Files already present
+ * in the bin (matched by project item name) are skipped, so this is safe to
+ * call repeatedly with overlapping file lists.
  *
- * fileNamesJSON: a JSON-encoded array of file names (not full paths).
  * Returns a JSON string: { success: bool, imported: [names], error: string }
  */
-function pbw_importFiles(folderPath, fileNamesJSON, binPathJSON) {
+function pbw_importFiles(payloadJSON) {
     var result = { success: true, imported: [], error: "" };
     try {
-        var fileNames = JSON.parse(fileNamesJSON);
-        var binPath = JSON.parse(binPathJSON);
+        var payload = JSON.parse(payloadJSON);
+        var folderPath = payload.folder;
+        var fileNames = payload.files;
+        var binPath = payload.binPath;
         var bin = pbw_resolveBinPath(binPath, true);
 
         var existing = {};
