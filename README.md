@@ -147,3 +147,7 @@ Note: Premiere Pro's extensibility is gradually moving from CEP to Adobe's newer
 framework (Adobe has said CEP/ExtendScript integrations remain supported into 2026).
 This panel is built on CEP because it's what today's released Premiere versions support;
 a future UXP port may be needed down the line.
+
+## License
+
+MIT — see [LICENSE](LICENSE). Free to use, modify, and share.
