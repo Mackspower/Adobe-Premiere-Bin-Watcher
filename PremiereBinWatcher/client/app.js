@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 5;
+    const APP_VERSION = 6;
 
     function log(msg) {
         try {

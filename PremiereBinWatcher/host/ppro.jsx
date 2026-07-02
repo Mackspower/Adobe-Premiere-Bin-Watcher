@@ -1,5 +1,12 @@
 // ExtendScript host code for Bin Watcher.
 // Runs inside Premiere Pro's ExtendScript engine (invoked via CSInterface.evalScript from the panel).
+//
+// ExtendScript doesn't ship a JSON object by default (it's an ES3-era engine;
+// whether JSON exists depends on whether some other panel happened to load
+// it into the shared engine first). Since this file leans on JSON.parse/
+// JSON.stringify throughout, we pull in Douglas Crockford's reference
+// polyfill, which no-ops if a native JSON already exists.
+#include "json2.js"
 
 /**
  * Walks the project's bin tree and returns every bin as a path (array of
@@ -8,19 +15,21 @@
  */
 function pbw_listBins() {
     var result = [];
-
-    function walk(item, trail) {
-        for (var i = 0; i < item.children.numItems; i++) {
-            var child = item.children[i];
-            if (child.type === ProjectItemType.BIN) {
-                var path = trail.concat([child.name]);
-                result.push(path);
-                walk(child, path);
+    try {
+        function walk(item, trail) {
+            for (var i = 0; i < item.children.numItems; i++) {
+                var child = item.children[i];
+                if (child.type === ProjectItemType.BIN) {
+                    var path = trail.concat([child.name]);
+                    result.push(path);
+                    walk(child, path);
+                }
             }
         }
+        walk(app.project.rootItem, []);
+    } catch (e) {
+        result = [];
     }
-
-    walk(app.project.rootItem, []);
     return JSON.stringify(result);
 }
 
