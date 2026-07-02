@@ -4,7 +4,7 @@ A free alternative to [Watchtower](https://knightsoftheeditingtable.com/) for th
 case: tie a project bin to a folder on disk, and anything dropped into that folder gets
 imported into the bin automatically.
 
-Windows only for now (see "Expanding later" below).
+Works on Windows and macOS.
 
 ## How it works
 
@@ -25,7 +25,9 @@ import a file that's still being copied in). Before importing, it checks the bin
 existing contents by name, so it's safe to restart Premiere or the panel without
 duplicate imports.
 
-## Install (Windows)
+## Install
+
+### Windows
 
 1. Download/clone this repo somewhere on your machine.
 2. Open PowerShell in that folder and run:
@@ -40,10 +42,29 @@ duplicate imports.
 3. Restart Premiere Pro.
 4. Open the panel from **Window > Extensions > Bin Watcher**.
 
+### macOS
+
+1. Download/clone this repo somewhere on your machine.
+2. Open Terminal in that folder and run:
+   ```bash
+   bash install-mac.sh
+   ```
+   This copies `PremiereBinWatcher/` into
+   `~/Library/Application Support/Adobe/CEP/extensions/PremiereBinWatcher` and enables
+   Premiere's "load unsigned extensions" debug flag (a per-user default, no sudo needed
+   — undo it later with `defaults delete com.adobe.CSXS.<version> PlayerDebugMode` for
+   each version listed in the script).
+3. Restart Premiere Pro.
+4. Open the panel from **Window > Extensions > Bin Watcher**.
+
+If macOS's Gatekeeper complains about running the script, right-click `install-mac.sh` >
+Open, or run `chmod +x install-mac.sh` first.
+
 ## Use
 
 1. Click **Browse folder…** and pick the folder you want watched (the dialog can pop up
-   *behind* Premiere's main window — if nothing seems to happen, try Alt+Tab).
+   *behind* Premiere's main window — if nothing seems to happen, try Alt+Tab on Windows
+   or Cmd+Tab on macOS).
 2. Pick an existing bin from the **Bin** dropdown (this lists every bin already in your
    project, including nested ones), or choose **+ New top-level bin…** and type a name
    for a bin that doesn't exist yet.
@@ -53,7 +74,8 @@ duplicate imports.
 Click **Refresh** next to the Bin dropdown if you've created a new bin in Premiere since
 opening the panel and want it to show up in the list.
 
-Watches are saved to `%APPDATA%\PremiereBinWatcher\config.json` and reload automatically
+Watches are saved to `%APPDATA%\PremiereBinWatcher\config.json` (Windows) or
+`~/PremiereBinWatcher/config.json` (macOS) and reload automatically
 next time you open the panel/project. You can pause/resume or remove a watch from the
 panel, adjust the check interval, and edit the list of file extensions it imports
 (defaults to common video/audio/image types; use `*` to import everything).
@@ -73,8 +95,6 @@ re-checks the bin's actual contents on the next poll.
 ## Limitations (v1)
 
 - No image-sequence handling.
-- Windows only — Premiere's CEP extensions folder and debug-mode registry keys are
-  Windows-specific in this installer.
 
 ## Troubleshooting
 
@@ -100,8 +120,8 @@ With Premiere open and the panel visible:
 2. Click the "Bin Watcher" entry listed there — it opens full Chrome DevTools attached
    to the panel, where you can see the Console tab for the exact error and stack trace.
 
-If you make changes and reinstall, re-run `install-windows.ps1` (it deletes and
-recopies the whole extension folder) and fully restart Premiere Pro.
+If you make changes and reinstall, re-run `install-windows.ps1` / `install-mac.sh` (it
+deletes and recopies the whole extension folder) and fully restart Premiere Pro.
 
 **"I reinstalled but nothing seems different / I'm seeing behavior that doesn't match
 the current code."**
@@ -113,15 +133,13 @@ prints a line like `Bin Watcher starting... (build 5)`. Check that number agains
 highest `?v=N` in `client/index.html` on the `main`/branch you pulled — if the panel
 reports an older build, the cache is stale. Closing Premiere, reinstalling, and
 reopening should now force a fresh load (the build number is baked into the cached
-file's URL), but if it still won't budge, delete
-`%APPDATA%\Adobe\CEP\extensions\PremiereBinWatcher`, clear Premiere's media/disk cache
-from Edit > Preferences > Media Cache, and reinstall from scratch.
+file's URL), but if it still won't budge, delete the extension folder
+(`%APPDATA%\Adobe\CEP\extensions\PremiereBinWatcher` on Windows,
+`~/Library/Application Support/Adobe/CEP/extensions/PremiereBinWatcher` on macOS), clear
+Premiere's media/disk cache from Preferences > Media Cache, and reinstall from scratch.
 
 ## Expanding later
 
-- **macOS**: the panel code itself is cross-platform; only `install-windows.ps1` would
-  need a macOS equivalent (copying to `~/Library/Application Support/Adobe/CEP/extensions`
-  and setting the debug flag via `defaults write`).
 - **Image sequences**: extend the polling logic in `client/app.js` to detect and import
   numbered-stills sequences as a single clip instead of individual files.
 
