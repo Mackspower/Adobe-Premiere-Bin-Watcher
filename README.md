@@ -79,8 +79,9 @@ experience, not a different trust story than the script above.
 3. Restart Premiere Pro.
 4. Open the panel from **Window > Extensions > Bin Watcher**.
 
-Prefer a `.dmg` you can hand to someone else? `bash packaging/build-dmg.sh` (must be
-run on macOS) bundles the same installer into `packaging/dist/BinWatcher.dmg`.
+Prefer a `.dmg` you can hand to someone else? Double-click **`Build DMG.command`** (or
+run `bash packaging/build-dmg.sh` yourself) — must be run on macOS — to produce
+`packaging/dist/BinWatcher.dmg`.
 
 ## Use
 
