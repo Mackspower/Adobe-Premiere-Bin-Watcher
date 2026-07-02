@@ -48,13 +48,24 @@ duplicate imports.
 3. Restart Premiere Pro.
 4. Open the panel from **Window > Extensions > Bin Watcher**.
 
+Prefer a normal installer wizard (`Setup.exe`) instead of running a script? See
+`packaging/windows-installer/` — it builds one with the free
+[Inno Setup](https://jrsoftware.org/isinfo.php) compiler. It's not compiled here
+(that needs Inno Setup installed on a Windows machine), and being unsigned it'll still
+show a SmartScreen "unknown publisher" prompt on first run — it's a nicer install
+experience, not a different trust story than the script above.
+
 ### macOS
 
 1. Download/clone this repo somewhere on your machine.
-2. Open Terminal in that folder and run:
-   ```bash
-   bash install-mac.sh
-   ```
+2. Double-click **`Install Bin Watcher.command`** — it opens Terminal and runs the
+   installer. (Don't double-click `install-mac.sh` directly; Finder often opens plain
+   `.sh` files in a code editor like Xcode instead of running them. If Gatekeeper
+   complains about an unidentified developer, right-click the `.command` file > Open
+   instead of double-clicking.)
+
+   Equivalently, from Terminal: `bash install-mac.sh`.
+
    This copies `PremiereBinWatcher/` into
    `~/Library/Application Support/Adobe/CEP/extensions/PremiereBinWatcher` and enables
    Premiere's "load unsigned extensions" debug flag (a per-user default, no sudo needed
@@ -63,8 +74,8 @@ duplicate imports.
 3. Restart Premiere Pro.
 4. Open the panel from **Window > Extensions > Bin Watcher**.
 
-If macOS's Gatekeeper complains about running the script, right-click `install-mac.sh` >
-Open, or run `chmod +x install-mac.sh` first.
+Prefer a `.dmg` you can hand to someone else? `bash packaging/build-dmg.sh` (must be
+run on macOS) bundles the same installer into `packaging/dist/BinWatcher.dmg`.
 
 ## Use
 
