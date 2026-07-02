@@ -1,8 +1,12 @@
 ; Inno Setup script for Bin Watcher (Windows).
 ;
-; This produces a real Setup.exe, but isn't compiled here - Inno Setup is a
-; Windows GUI/CLI compiler, not something available in this environment.
-; To build it yourself:
+; This produces a real Setup.exe. It's built automatically on every GitHub
+; Release by ../../.github/workflows/build-windows-installer.yml (a
+; GitHub-hosted Windows runner installs Inno Setup and compiles this) - no
+; local Windows machine needed. See the Releases page for the latest build:
+; https://github.com/mackspower/Adobe-Premiere-Bin-Watcher/releases
+;
+; To build it yourself instead:
 ;   1. Install Inno Setup (free): https://jrsoftware.org/isinfo.php
 ;   2. Open this file in the Inno Setup Compiler and click Build (or run
 ;      "ISCC.exe BinWatcher.iss" from a Command Prompt in this folder).
