@@ -61,6 +61,34 @@ panel, adjust the check interval, and edit the list of file extensions it import
 - Windows only — Premiere's CEP extensions folder and debug-mode registry keys are
   Windows-specific in this installer.
 
+## Troubleshooting
+
+**The panel opens but buttons don't do anything (e.g. "Browse folder…" does nothing).**
+
+The panel now logs every step to the "Activity" box at the bottom, so this is the first
+place to look:
+
+- If you never see `Bin Watcher ready.` appear there when you open the panel, the
+  panel's JavaScript failed to start — you should instead see a red error message
+  explaining why (most likely "Node.js isn't available in this panel").
+- If you see `Bin Watcher ready.` but clicking **Browse folder…** never logs
+  `Opening folder browser...` / `Folder browser returned: ...`, the click isn't reaching
+  the button at all — try fully quitting and reopening Premiere.
+- If you see `Folder browser returned: ""`, the native folder-picker dialog opened but
+  you clicked Cancel, or it opened behind Premiere's main window — check your other
+  windows/monitors.
+
+For a deeper look, this build ships with remote debugging enabled (the `.debug` file).
+With Premiere open and the panel visible:
+
+1. Open Chrome or Edge and go to `http://localhost:8088`.
+2. Click the "Bin Watcher" entry listed there — it opens full Chrome DevTools attached
+   to the panel, where you can see the Console tab for the exact error and stack trace.
+
+If you make changes and reinstall, re-run `install-windows.ps1` (it deletes and
+recopies the whole extension folder) and fully restart Premiere Pro — CEP panels are
+cached per-session, so edits to the files won't take effect until Premiere restarts.
+
 ## Expanding later
 
 - **macOS**: the panel code itself is cross-platform; only `install-windows.ps1` would
