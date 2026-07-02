@@ -49,7 +49,7 @@ commercial signing certificate. Two install paths exist:
 
 ## Source
 
-https://github.com/mackspower/claude — the root `README.md` has full
+https://github.com/mackspower/Adobe-Premiere-Bin-Watcher — the root `README.md` has full
 install and usage instructions; this file and `packaging/README.md` cover the
 security/signing side.
 
