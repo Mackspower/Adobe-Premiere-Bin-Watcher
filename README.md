@@ -6,6 +6,12 @@ imported into the bin automatically.
 
 Works on Windows and macOS.
 
+The install steps below use Premiere's "load unsigned extensions" debug flag, which is
+the fastest way to get running but relaxes a real security control machine-wide (see
+[SECURITY.md](SECURITY.md)). If you're installing this on a work/managed machine,
+read that first — `packaging/` has a signed-package alternative that avoids the
+trade-off.
+
 ## How it works
 
 Premiere Pro no longer supports running standalone `.jsx` scripts from a menu (that's an

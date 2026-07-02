@@ -1,0 +1,4 @@
+# Packaging artifacts - never commit the private signing cert or built packages.
+packaging/cert/
+packaging/dist/
+packaging/tools/
