@@ -58,10 +58,13 @@ next time you open the panel/project. You can pause/resume or remove a watch fro
 panel, adjust the check interval, and edit the list of file extensions it imports
 (defaults to common video/audio/image types; use `*` to import everything).
 
+**Subfolders are watched too, and mirrored as sub-bins.** If your watched folder is
+`IMAGES` and you drop files into `IMAGES\RAW`, Bin Watcher creates (or reuses) a `RAW`
+bin inside your `IMAGES` bin and imports there — matching the folder structure on disk,
+arbitrarily deep.
+
 ## Limitations (v1)
 
-- Only top-level bins by name — no nested bin paths yet.
-- No recursive subfolder support (a subfolder inside a watched folder is ignored).
 - No image-sequence handling.
 - Windows only — Premiere's CEP extensions folder and debug-mode registry keys are
   Windows-specific in this installer.
@@ -112,9 +115,8 @@ from Edit > Preferences > Media Cache, and reinstall from scratch.
 - **macOS**: the panel code itself is cross-platform; only `install-windows.ps1` would
   need a macOS equivalent (copying to `~/Library/Application Support/Adobe/CEP/extensions`
   and setting the debug flag via `defaults write`).
-- **Nested bins**: `host/ppro.jsx`'s `pbw_findOrCreateBin` currently only looks at
-  top-level bins; it could walk a `/`-delimited bin path instead.
-- **Recursive folders / image sequences**: extend the polling logic in `client/app.js`.
+- **Image sequences**: extend the polling logic in `client/app.js` to detect and import
+  numbered-stills sequences as a single clip instead of individual files.
 
 Note: Premiere Pro's extensibility is gradually moving from CEP to Adobe's newer UXP
 framework (Adobe has said CEP/ExtendScript integrations remain supported into 2026).

@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 6;
+    const APP_VERSION = 7;
 
     function log(msg) {
         try {
@@ -127,70 +127,103 @@
         return exts.indexOf(ext) !== -1;
     }
 
-    function pollWatch(watch) {
-        fs.readdir(watch.folder, { withFileTypes: true }, (err, entries) => {
-            if (err) {
+    const pollingInProgress = {};
+
+    // Recursively lists files under rootDir, each tagged with the relative
+    // subfolder (native separators) it was found in ("" for the root
+    // itself). Unreadable subfolders are skipped rather than aborting the
+    // whole walk.
+    async function walkDir(rootDir, relDir) {
+        const dirPath = relDir ? path.join(rootDir, relDir) : rootDir;
+        let entries;
+        try {
+            entries = await fs.promises.readdir(dirPath, { withFileTypes: true });
+        } catch (e) {
+            return [];
+        }
+
+        let files = [];
+        for (const entry of entries) {
+            if (entry.isDirectory()) {
+                const childRel = relDir ? path.join(relDir, entry.name) : entry.name;
+                files = files.concat(await walkDir(rootDir, childRel));
+            } else if (entry.isFile()) {
+                files.push({ relDir, name: entry.name });
+            }
+        }
+        return files;
+    }
+
+    async function pollWatch(watch) {
+        if (pollingInProgress[watch.id]) return;
+        pollingInProgress[watch.id] = true;
+        try {
+            try {
+                await fs.promises.access(watch.folder, fs.constants.R_OK);
+            } catch (err) {
                 log(`"${watch.binLabel}": can't read folder (${err.message})`);
                 return;
             }
 
-            const files = entries
-                .filter((e) => e.isFile())
-                .map((e) => e.name)
-                .filter(isAllowed);
+            const found = (await walkDir(watch.folder, "")).filter((f) => isAllowed(f.name));
 
             const prevPending = pendingSizes[watch.id] || {};
             const nextPending = {};
-            const ready = [];
+            const readyByDir = {}; // relDir -> [filenames]
 
-            if (files.length === 0) {
-                pendingSizes[watch.id] = nextPending;
-                return;
-            }
-
-            let remaining = files.length;
-            files.forEach((name) => {
-                fs.stat(path.join(watch.folder, name), (statErr, stats) => {
-                    if (!statErr) {
-                        const prev = prevPending[name];
+            await Promise.all(
+                found.map(async (f) => {
+                    const key = f.relDir ? path.join(f.relDir, f.name) : f.name;
+                    try {
+                        const stats = await fs.promises.stat(path.join(watch.folder, f.relDir, f.name));
+                        const prev = prevPending[key];
                         if (prev && prev.size === stats.size) {
-                            ready.push(name);
+                            if (!readyByDir[f.relDir]) readyByDir[f.relDir] = [];
+                            readyByDir[f.relDir].push(f.name);
                         } else {
-                            nextPending[name] = { size: stats.size };
+                            nextPending[key] = { size: stats.size };
                         }
+                    } catch (e) {
+                        // File vanished between listing and stat-ing it; skip for now.
                     }
-                    remaining--;
-                    if (remaining === 0) {
-                        pendingSizes[watch.id] = nextPending;
-                        if (ready.length > 0) importReady(watch, ready);
-                    }
-                });
+                })
+            );
+
+            pendingSizes[watch.id] = nextPending;
+
+            Object.keys(readyByDir).forEach((relDir) => {
+                const subSegments = relDir ? relDir.split(path.sep).filter(Boolean) : [];
+                importReady(
+                    watch,
+                    readyByDir[relDir],
+                    path.join(watch.folder, relDir),
+                    watch.binPath.concat(subSegments)
+                );
             });
-        });
+        } finally {
+            pollingInProgress[watch.id] = false;
+        }
     }
 
-    function importReady(watch, filenames) {
+    function importReady(watch, filenames, folder, binPath) {
+        const binLabel = binPath.join(" / ");
         // A single JSON payload, JSON.stringify'd exactly once for the
         // ExtendScript call, rather than nesting JSON.stringify calls for
         // each argument - fewer levels of escaping means fewer ways for the
         // generated script text to end up malformed.
-        const payload = JSON.stringify({
-            folder: watch.folder,
-            files: filenames,
-            binPath: watch.binPath
-        });
+        const payload = JSON.stringify({ folder, files: filenames, binPath });
         const script = `pbw_importFiles(${JSON.stringify(payload)})`;
 
         evalScript(script, (result) => {
             try {
                 const parsed = JSON.parse(result);
                 if (parsed.success && parsed.imported && parsed.imported.length) {
-                    log(`Imported into "${watch.binLabel}": ${parsed.imported.join(", ")}`);
+                    log(`Imported into "${binLabel}": ${parsed.imported.join(", ")}`);
                 } else if (!parsed.success) {
-                    log(`Import failed for "${watch.binLabel}": ${parsed.error || "unknown error"}`);
+                    log(`Import failed for "${binLabel}": ${parsed.error || "unknown error"}`);
                 }
             } catch (e) {
-                log(`Unexpected response for "${watch.binLabel}": ${result}`);
+                log(`Unexpected response for "${binLabel}": ${result}`);
                 log(`(payload sent: ${payload})`);
             }
         });
