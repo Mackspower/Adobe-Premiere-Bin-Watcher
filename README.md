@@ -6,6 +6,11 @@ imported into the bin automatically.
 
 Works on Windows and macOS.
 
+**On a Mac and just want it installed?** Skip to the
+[plain-language step-by-step guide](INSTALL.md) — download a `.dmg`, double-click
+through it, done. The instructions below are the fuller/more technical version,
+useful if you're on Windows or want to understand what's actually happening.
+
 The install steps below use Premiere's "load unsigned extensions" debug flag, which is
 the fastest way to get running but relaxes a real security control machine-wide (see
 [SECURITY.md](SECURITY.md)). If you're installing this on a work/managed machine,
