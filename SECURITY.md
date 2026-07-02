@@ -49,5 +49,28 @@ commercial signing certificate. Two install paths exist:
 
 ## Source
 
-https://github.com/mackspower/claude — the root `README.md` has full install and usage
-instructions; this file and `packaging/README.md` cover the security/signing side.
+https://github.com/mackspower/Adobe-Premiere-Bin-Watcher — the root `README.md` has full
+install and usage instructions; this file and `packaging/README.md` cover the
+security/signing side.
+
+## Maintainer checklist (repo hygiene, not the extension itself)
+
+This project is public and MIT licensed — anyone can clone, use, or fork it, but only
+this repo's collaborators can push to it directly. A few settings worth keeping on,
+checked from GitHub's repo Settings page:
+
+- **Two-factor authentication on your own GitHub account.** The realistic risk to a
+  public repo isn't a stranger editing your code (they can't, without you merging a
+  PR) — it's someone taking over your account and pushing something malicious under
+  your name. 2FA is the actual defense against that.
+- **Branch protection on `main`**: Settings → Branches → Add rule → enable "Restrict
+  force pushes" and "Do not allow deletions." Mostly protects you from an accidental
+  `git push --force` rewriting history, cheap to leave on.
+- **Secret scanning + push protection**: Settings → Code security and analysis.
+  Secret scanning is normally automatic for public repos; push protection additionally
+  blocks a commit *before* it's pushed if it looks like it contains a credential.
+- **Read PR diffs before merging.** The only path for external code to land in `main`
+  is you clicking merge on someone else's Pull Request — treat that review as the real
+  security boundary, not a formality.
+- **Recheck collaborators occasionally** (Settings → Collaborators) — confirm it's
+  still just you (or whoever you've deliberately added) with write access.

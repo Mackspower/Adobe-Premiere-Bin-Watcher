@@ -1,0 +1,49 @@
+; Inno Setup script for Bin Watcher (Windows).
+;
+; This produces a real Setup.exe, but isn't compiled here - Inno Setup is a
+; Windows GUI/CLI compiler, not something available in this environment.
+; To build it yourself:
+;   1. Install Inno Setup (free): https://jrsoftware.org/isinfo.php
+;   2. Open this file in the Inno Setup Compiler and click Build (or run
+;      "ISCC.exe BinWatcher.iss" from a Command Prompt in this folder).
+;   3. The installer is written to packaging\dist\BinWatcherSetup.exe.
+;
+; Like the unsigned .zxp / debug-mode install, this Setup.exe is itself
+; unsigned unless you separately get a code-signing certificate and sign it -
+; Windows SmartScreen will show an "unknown publisher" warning on first run
+; either way. This just replaces "download a zip and run a PowerShell
+; script" with a normal-looking installer wizard; it doesn't change that
+; underlying trust story.
+
+[Setup]
+AppName=Bin Watcher for Premiere Pro
+AppVersion=1.0
+AppPublisher=Troy Rankin
+DefaultDirName={userappdata}\Adobe\CEP\extensions\PremiereBinWatcher
+DisableProgramGroupPage=yes
+DisableDirPage=yes
+DisableReadyPage=yes
+DisableWelcomePage=no
+PrivilegesRequired=lowest
+OutputBaseFilename=BinWatcherSetup
+OutputDir=..\dist
+Compression=lzma
+SolidCompression=yes
+
+[Files]
+Source: "..\..\PremiereBinWatcher\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+
+; Premiere Pro loads unsigned/dev extensions only when the matching CEP
+; runtime has PlayerDebugMode enabled. Different Premiere Pro versions use
+; different CEP runtime versions, so this covers the ones in common use
+; (roughly Premiere Pro 2021 through 2025) - same set install-windows.ps1 sets.
+[Registry]
+Root: HKCU; Subkey: "Software\Adobe\CSXS.7"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
+Root: HKCU; Subkey: "Software\Adobe\CSXS.8"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
+Root: HKCU; Subkey: "Software\Adobe\CSXS.9"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
+Root: HKCU; Subkey: "Software\Adobe\CSXS.10"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
+Root: HKCU; Subkey: "Software\Adobe\CSXS.11"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
+Root: HKCU; Subkey: "Software\Adobe\CSXS.12"; ValueType: string; ValueName: "PlayerDebugMode"; ValueData: "1"
+
+[Messages]
+FinishedLabel=Bin Watcher has been installed.%n%nRestart Premiere Pro, then open it from Window > Extensions > Bin Watcher.

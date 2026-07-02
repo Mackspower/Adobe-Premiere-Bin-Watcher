@@ -1,16 +1,25 @@
-# Signed package builds
+# Packaging options
 
-The regular install (`install-windows.ps1` / `install-mac.sh`) works by enabling
-Premiere's "load unsigned extensions" debug flag. That flag isn't scoped to just Bin
-Watcher — it tells Premiere to trust *any* unsigned CEP extension on that machine,
-which is a reasonable trade-off on your own computer but a harder sell on a managed
-work machine. This folder builds a **signed** `.zxp` instead, so Premiere can load Bin
-Watcher without that flag turned on at all.
+This folder has three independent ways to package Bin Watcher, each solving a
+different problem. Mixing them up is a common source of confusion, so here's the
+distinction up front:
+
+- **`build-dmg.sh`** — wraps the existing debug-mode install (`install-mac.sh`) into a
+  `.dmg` for macOS. Purely a convenience/distribution format; doesn't change trust at
+  all — the debug flag still gets enabled, Gatekeeper still warns on first open.
+- **`windows-installer/BinWatcher.iss`** — same idea for Windows: a normal installer
+  wizard (`Setup.exe`) instead of running a PowerShell script, built with the free
+  [Inno Setup](https://jrsoftware.org/isinfo.php) compiler. Also still unsigned, so
+  SmartScreen still warns on first run.
+- **The signed `.zxp` build below** — the one option that actually changes the trust
+  story: it avoids Premiere's debug flag entirely, at the cost of a manual
+  "trust this certificate" step per machine (see step 3 below).
 
 See the root [SECURITY.md](../SECURITY.md) for a plain-language summary of what Bin
-Watcher does and doesn't do — useful to hand to IT alongside this.
+Watcher does and doesn't do — useful to hand to IT regardless of which packaging
+option you use.
 
-## 1. Get ZXPSignCmd
+## Signed .zxp: 1. Get ZXPSignCmd
 
 Download the build for your OS from Adobe's official repo:
 https://github.com/Adobe-CEP/CEP-Resources/tree/master/ZXPSignCMD
@@ -18,7 +27,7 @@ https://github.com/Adobe-CEP/CEP-Resources/tree/master/ZXPSignCMD
 Put it on your PATH, or save it as `packaging/tools/ZXPSignCmd` (macOS/Linux —
 `chmod +x` it) or `packaging/tools/ZXPSignCmd.exe` (Windows).
 
-## 2. Build the signed package
+## Signed .zxp: 2. Build the signed package
 
 ```bash
 # macOS/Linux
@@ -38,7 +47,7 @@ sign something and have it pass as "trusted" on a machine that trusts your cert.
 
 This produces `packaging/dist/BinWatcher.zxp`.
 
-## 3. Trust the certificate (once per machine)
+## Signed .zxp: 3. Trust the certificate (once per machine)
 
 A self-signed certificate isn't automatically trusted by the OS, so without this step
 Premiere will still refuse to load the signed package.
@@ -60,13 +69,13 @@ Adding to the machine-wide store requires an admin prompt. Adding instead to the
 Current User store usually doesn't need admin — unless your organization's policy
 blocks users from modifying even their own trusted-root store, which some do.
 
-## 4. Install the .zxp
+## Signed .zxp: 4. Install the .zxp
 
 Use a free installer such as [ZXPInstaller](https://github.com/aleen42/ZXPInstaller)
 or Anastasiy's Extension Manager — either handles placing a signed extension in the
 right CEP folder for you. Point it at `packaging/dist/BinWatcher.zxp`.
 
-## 5. Turn debug mode back off
+## Signed .zxp: 5. Turn debug mode back off
 
 Once installed this way, you can turn Premiere's `PlayerDebugMode` back off (delete
 the registry values / `defaults delete` entries the regular installer set — see the
