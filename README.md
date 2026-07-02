@@ -6,10 +6,12 @@ imported into the bin automatically.
 
 Works on Windows and macOS.
 
-**On a Mac and just want it installed?** Skip to the
-[plain-language step-by-step guide](INSTALL.md) — download a `.dmg`, double-click
-through it, done. The instructions below are the fuller/more technical version,
-useful if you're on Windows or want to understand what's actually happening.
+**Just want it installed?** Skip to the
+[plain-language step-by-step guide](INSTALL.md) (macOS and Windows) — download a
+file from [Releases](https://github.com/mackspower/Adobe-Premiere-Bin-Watcher/releases),
+double-click through it, done. The instructions below are the fuller/more technical
+version, useful if you want to understand what's actually happening or prefer the
+manual install.
 
 The install steps below use Premiere's "load unsigned extensions" debug flag, which is
 the fastest way to get running but relaxes a real security control machine-wide (see
