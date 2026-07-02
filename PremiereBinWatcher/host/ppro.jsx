@@ -74,10 +74,16 @@ function pbw_sepFor(folderPath) {
  * in the bin (matched by project item name) are skipped, so this is safe to
  * call repeatedly with overlapping file lists.
  *
- * Returns a JSON string: { success: bool, imported: [names], error: string }
+ * Returns a JSON string:
+ *   { success: bool,
+ *     imported: [names freshly imported this call],
+ *     present: [names now confirmed in the bin, whether freshly imported
+ *               or already there - the caller uses this to know which
+ *               files it no longer needs to ask about again],
+ *     error: string }
  */
 function pbw_importFiles(payloadJSON) {
-    var result = { success: true, imported: [], error: "" };
+    var result = { success: true, imported: [], present: [], error: "" };
     try {
         var payload = JSON.parse(payloadJSON);
         var folderPath = payload.folder;
@@ -98,9 +104,12 @@ function pbw_importFiles(payloadJSON) {
 
         var toImportPaths = [];
         var toImportNames = [];
+        var present = [];
         for (var j = 0; j < fileNames.length; j++) {
             var name = fileNames[j];
-            if (!existing[name]) {
+            if (existing[name]) {
+                present.push(name);
+            } else {
                 toImportPaths.push(base + name);
                 toImportNames.push(name);
             }
@@ -109,8 +118,12 @@ function pbw_importFiles(payloadJSON) {
         if (toImportPaths.length > 0) {
             var ok = app.project.importFiles(toImportPaths, true, bin, false);
             result.success = ok;
+            if (ok) {
+                present = present.concat(toImportNames);
+                result.imported = toImportNames;
+            }
         }
-        result.imported = toImportNames;
+        result.present = present;
     } catch (e) {
         result.success = false;
         result.error = e.toString();

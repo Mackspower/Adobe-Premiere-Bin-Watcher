@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 7;
+    const APP_VERSION = 8;
 
     function log(msg) {
         try {
@@ -56,8 +56,20 @@
     let state = {
         watches: [], // { id, folder, binPath: [names...], binLabel, enabled }
         pollSeconds: 3,
-        extensions: DEFAULT_EXTENSIONS
+        extensions: DEFAULT_EXTENSIONS,
+        // Per watch, the size a file was at when we last confirmed it was
+        // present in its bin. Lets us tell "never seen this file" (import
+        // it) apart from "this was imported and then deliberately removed
+        // from the bin" (leave it alone) - both look identical otherwise,
+        // since the only other signal is whether the bin currently
+        // contains a matching item.
+        importHistory: {} // { [watchId]: { [relativeFileKey]: size } }
     };
+
+    function historyFor(watchId) {
+        if (!state.importHistory[watchId]) state.importHistory[watchId] = {};
+        return state.importHistory[watchId];
+    }
 
     // In-memory only: filename -> { size } per watch, used to detect that a
     // file has finished copying (its size stopped changing between polls).
@@ -169,17 +181,24 @@
 
             const prevPending = pendingSizes[watch.id] || {};
             const nextPending = {};
-            const readyByDir = {}; // relDir -> [filenames]
+            const readyByDir = {}; // relDir -> [{name, size}]
+            const history = historyFor(watch.id);
 
             await Promise.all(
                 found.map(async (f) => {
                     const key = f.relDir ? path.join(f.relDir, f.name) : f.name;
                     try {
                         const stats = await fs.promises.stat(path.join(watch.folder, f.relDir, f.name));
+
+                        // Already handled before at this exact size - either
+                        // it's still sitting in the bin, or you deliberately
+                        // removed it from the bin and we shouldn't put it back.
+                        if (history[key] === stats.size) return;
+
                         const prev = prevPending[key];
                         if (prev && prev.size === stats.size) {
                             if (!readyByDir[f.relDir]) readyByDir[f.relDir] = [];
-                            readyByDir[f.relDir].push(f.name);
+                            readyByDir[f.relDir].push({ name: f.name, size: stats.size });
                         } else {
                             nextPending[key] = { size: stats.size };
                         }
@@ -195,6 +214,7 @@
                 const subSegments = relDir ? relDir.split(path.sep).filter(Boolean) : [];
                 importReady(
                     watch,
+                    relDir,
                     readyByDir[relDir],
                     path.join(watch.folder, relDir),
                     watch.binPath.concat(subSegments)
@@ -205,8 +225,9 @@
         }
     }
 
-    function importReady(watch, filenames, folder, binPath) {
+    function importReady(watch, relDir, items, folder, binPath) {
         const binLabel = binPath.join(" / ");
+        const filenames = items.map((i) => i.name);
         // A single JSON payload, JSON.stringify'd exactly once for the
         // ExtendScript call, rather than nesting JSON.stringify calls for
         // each argument - fewer levels of escaping means fewer ways for the
@@ -221,6 +242,21 @@
                     log(`Imported into "${binLabel}": ${parsed.imported.join(", ")}`);
                 } else if (!parsed.success) {
                     log(`Import failed for "${binLabel}": ${parsed.error || "unknown error"}`);
+                }
+
+                // Anything the host confirms is now in the bin (freshly
+                // imported or already there) is "settled" - stop asking
+                // about it until its size changes.
+                if (parsed.present && parsed.present.length) {
+                    const history = historyFor(watch.id);
+                    parsed.present.forEach((name) => {
+                        const item = items.find((i) => i.name === name);
+                        if (item) {
+                            const key = relDir ? path.join(relDir, name) : name;
+                            history[key] = item.size;
+                        }
+                    });
+                    saveState();
                 }
             } catch (e) {
                 log(`Unexpected response for "${binLabel}": ${result}`);
@@ -275,6 +311,7 @@
                     </div>
                     <div class="actions">
                         <button data-action="toggle" data-id="${w.id}">${w.enabled ? "Pause" : "Resume"}</button>
+                        <button data-action="resync" data-id="${w.id}" title="Re-add anything you've deleted from this bin since it was last imported">Resync</button>
                         <button data-action="remove" data-id="${w.id}" class="danger">Remove</button>
                     </div>
                 </div>
@@ -415,9 +452,16 @@
         } else if (action === "remove") {
             stopWatch(watch.id);
             delete pendingSizes[watch.id];
+            delete state.importHistory[watch.id];
             state.watches = state.watches.filter((w) => w.id !== id);
             saveState();
             render();
+        } else if (action === "resync") {
+            delete state.importHistory[watch.id];
+            delete pendingSizes[watch.id];
+            saveState();
+            log(`Cleared import history for "${watch.binLabel}" - anything missing from the bin will be re-added.`);
+            pollWatch(watch);
         }
     });
 

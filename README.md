@@ -63,6 +63,13 @@ panel, adjust the check interval, and edit the list of file extensions it import
 bin inside your `IMAGES` bin and imports there — matching the folder structure on disk,
 arbitrarily deep.
 
+**Deleting an item from a bin in Premiere is permanent** — Bin Watcher won't re-import
+it, even though the underlying file is still sitting in the watched folder. It only
+re-imports a file if the file itself changes (different size) after that. If you ever
+want to undo that and bring back everything currently missing from a bin, click
+**Resync** on that watch — it forgets what's been "settled" for that watch and
+re-checks the bin's actual contents on the next poll.
+
 ## Limitations (v1)
 
 - No image-sequence handling.
