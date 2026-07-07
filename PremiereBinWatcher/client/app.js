@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 11;
+    const APP_VERSION = 12;
 
     function log(msg) {
         try {
@@ -81,7 +81,11 @@
         // from the bin" (leave it alone) - both look identical otherwise,
         // since the only other signal is whether the bin currently
         // contains a matching item.
-        importHistory: {} // { [watchId]: { [relativeFileKey]: size } }
+        importHistory: {}, // { [watchId]: { [relativeFileKey]: size } }
+        // Most-recently-picked folders first. recentFolders[0] doubles as
+        // the "last used" folder - the starting directory offered next time
+        // the browse dialog opens.
+        recentFolders: []
     };
 
     function historyFor(watchId) {
@@ -435,6 +439,42 @@
 
     let selectedFolder = "";
 
+    const MAX_RECENT_FOLDERS = 8;
+
+    // Records a folder as the most recently used (for the "recent folders"
+    // dropdown and as the starting directory next time Browse is opened).
+    function addRecentFolder(folder) {
+        if (!folder) return;
+        state.recentFolders = state.recentFolders.filter((f) => f !== folder);
+        state.recentFolders.unshift(folder);
+        if (state.recentFolders.length > MAX_RECENT_FOLDERS) {
+            state.recentFolders.length = MAX_RECENT_FOLDERS;
+        }
+        saveState();
+        populateRecentFolders();
+    }
+
+    function populateRecentFolders() {
+        const select = document.getElementById("recentFoldersSelect");
+        if (!select) return;
+        select.innerHTML = '<option value="">Recent folders&hellip;</option>';
+        state.recentFolders.forEach((f) => {
+            const opt = document.createElement("option");
+            opt.value = f;
+            opt.textContent = f;
+            select.appendChild(opt);
+        });
+        select.style.display = state.recentFolders.length ? "" : "none";
+    }
+
+    // Sets the folder selected for the watch about to be added, and (unless
+    // clearing) remembers it as the most recent pick.
+    function setSelectedFolder(folder) {
+        selectedFolder = folder;
+        updateFolderLabel();
+        if (folder) addRecentFolder(folder);
+    }
+
     function render() {
         const list = document.getElementById("watchList");
         list.innerHTML = "";
@@ -489,22 +529,39 @@
 
     function updateFolderLabel() {
         const el = document.getElementById("folderPath");
+        const input = document.getElementById("folderPathInput");
         if (selectedFolder) {
             el.textContent = selectedFolder;
             el.classList.remove("empty");
+            if (input) input.value = selectedFolder;
         } else {
             el.textContent = "No folder selected";
             el.classList.add("empty");
+            if (input) input.value = "";
         }
+    }
+
+    // PowerShell single-quoted strings are literal - the only escape needed
+    // is doubling any embedded single quote.
+    function psQuote(str) {
+        return "'" + String(str).replace(/'/g, "''") + "'";
+    }
+
+    // AppleScript double-quoted strings need backslashes and quotes escaped.
+    function appleScriptQuote(str) {
+        return String(str).replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     }
 
     // Opens a native OS folder picker directly (bypassing ExtendScript's
     // Folder.selectDialog(), which runs inside Premiere's own process and
     // can open behind Premiere's main window instead of in front of it).
-    // Resolves to: a path string on success, "" if the user cancelled, or
-    // null if a native picker isn't available on this platform/setup (in
-    // which case the caller should fall back to pbw_selectFolder()).
-    function browseForFolderNative() {
+    // startingDir (optional) is where the dialog opens - typically the last
+    // folder the user picked, since people tend to work within one
+    // consistent project folder structure. Resolves to: a path string on
+    // success, "" if the user cancelled, or null if a native picker isn't
+    // available on this platform/setup (in which case the caller should
+    // fall back to pbw_selectFolder()).
+    function browseForFolderNative(startingDir) {
         return new Promise((resolve) => {
             if (!childProcess) {
                 resolve(null);
@@ -542,11 +599,12 @@
                     "$owner.Activate()",
                     "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
                     "$dialog.Description = 'Select the folder to watch'",
+                    startingDir ? "$dialog.SelectedPath = " + psQuote(startingDir) : "",
                     "if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {",
                     "    Write-Output $dialog.SelectedPath",
                     "}",
                     "$owner.Dispose()"
-                ].join("\n");
+                ].filter(Boolean).join("\n");
 
                 childProcess.execFile(
                     "powershell.exe",
@@ -562,7 +620,11 @@
                     }
                 );
             } else if (process.platform === "darwin") {
-                const script = 'POSIX path of (choose folder with prompt "Select the folder to watch")';
+                const defaultLocationClause = startingDir
+                    ? ` default location (POSIX file "${appleScriptQuote(startingDir)}")`
+                    : "";
+                const script =
+                    `POSIX path of (choose folder with prompt "Select the folder to watch"${defaultLocationClause})`;
                 childProcess.execFile("osascript", ["-e", script], { encoding: "utf8" }, (err, stdout) => {
                     if (err) {
                         // Non-zero exit also covers the user clicking Cancel.
@@ -580,9 +642,21 @@
     document.getElementById("browseBtn").addEventListener("click", async () => {
         log("Opening folder browser...");
 
+        // Start the dialog at the last folder that was actually picked, if
+        // it still exists - most people work within one consistent project
+        // folder structure, so successive picks tend to land nearby.
+        let startingDir = state.recentFolders[0] || "";
+        if (startingDir) {
+            try {
+                if (!fs.statSync(startingDir).isDirectory()) startingDir = "";
+            } catch (e) {
+                startingDir = "";
+            }
+        }
+
         let result;
         try {
-            result = await browseForFolderNative();
+            result = await browseForFolderNative(startingDir);
         } catch (e) {
             result = null;
         }
@@ -593,19 +667,40 @@
             log("Falling back to Premiere's folder browser... (if no window appears, try Alt+Tab)");
             evalScript("pbw_selectFolder()", (fallbackResult) => {
                 log("Folder browser returned: " + JSON.stringify(fallbackResult));
-                if (fallbackResult) {
-                    selectedFolder = fallbackResult;
-                    updateFolderLabel();
-                }
+                if (fallbackResult) setSelectedFolder(fallbackResult);
             });
             return;
         }
 
         log("Folder browser returned: " + JSON.stringify(result));
-        if (result) {
-            selectedFolder = result;
-            updateFolderLabel();
+        if (result) setSelectedFolder(result);
+    });
+
+    document.getElementById("folderPathInput").addEventListener("change", (e) => {
+        const val = e.target.value.trim();
+        if (!val) {
+            setSelectedFolder("");
+            return;
         }
+        let stats;
+        try {
+            stats = fs.statSync(val);
+        } catch (e2) {
+            log(`Can't find folder "${val}".`);
+            return;
+        }
+        if (!stats.isDirectory()) {
+            log(`"${val}" isn't a folder.`);
+            return;
+        }
+        setSelectedFolder(val);
+    });
+
+    document.getElementById("recentFoldersSelect").addEventListener("change", (e) => {
+        const val = e.target.value;
+        if (!val) return;
+        setSelectedFolder(val);
+        e.target.value = "";
     });
 
     function populateBinSelect(binPaths) {
@@ -790,6 +885,7 @@
     document.getElementById("pollInput").value = state.pollSeconds;
     document.getElementById("extInput").value = state.extensions;
     populateLabelColorSelect();
+    populateRecentFolders();
     render();
     restartAllTimers();
     refreshBins();
