@@ -6,7 +6,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Bin Watcher</title>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=9">
 </head>
 <body>
     <h1>Bin Watcher</h1>
@@ -23,6 +23,27 @@
             <button id="refreshBinsBtn" title="Reload bin list from the open project">Refresh</button>
         </div>
         <input type="text" id="newBinNameInput" placeholder="New top-level bin name" style="display:none;">
+
+        <details class="advanced">
+            <summary>Advanced options</summary>
+            <label class="checkbox-row">
+                <input type="checkbox" id="flattenCheckbox">
+                Flatten subfolders into this bin (instead of matching sub-bins)
+            </label>
+            <label class="checkbox-row">
+                <input type="checkbox" id="sequencesCheckbox">
+                Import numbered image sequences as a single clip
+            </label>
+            <label class="checkbox-row">
+                <input type="checkbox" id="relativePathCheckbox">
+                Use a path relative to the project file (for templates)
+            </label>
+            <label for="labelColorSelect">Label imported items</label>
+            <select id="labelColorSelect">
+                <option value="">No label</option>
+            </select>
+        </details>
+
         <button id="addBtn" class="primary">+ Add Watch</button>
     </section>
 
@@ -42,7 +63,7 @@
         <div id="log"></div>
     </section>
 
-    <script src="cep-bridge.js?v=8"></script>
-    <script src="app.js?v=8"></script>
+    <script src="cep-bridge.js?v=9"></script>
+    <script src="app.js?v=9"></script>
 </body>
 </html>
