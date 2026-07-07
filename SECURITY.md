@@ -21,6 +21,14 @@ and `PremiereBinWatcher/host/ppro.jsx` (the code that talks to Premiere's projec
 - **Premiere Pro's open project**: through Adobe's own scripting API (ExtendScript), it
   can read the project's bin structure and import files into it — the same capability
   any Premiere script or panel has by design.
+- **One native OS helper process, only when you click "Browse folder…"**: to work
+  around Premiere's own folder-picker dialog sometimes opening behind Premiere's
+  window, the panel launches the OS's built-in folder picker directly instead -
+  `powershell.exe` on Windows (a fixed, inline script using .NET's
+  `FolderBrowserDialog`, see `browseForFolderNative()` in `client/app.js`) or
+  `osascript` on macOS (a fixed `choose folder` AppleScript command). Both commands are
+  hardcoded in the source, never built from user input or anything downloaded, and do
+  nothing beyond showing that one dialog and returning the chosen path.
 
 ## What it does NOT do
 
@@ -29,8 +37,9 @@ and `PremiereBinWatcher/host/ppro.jsx` (the code that talks to Premiere's projec
   Node network module (`http`/`https`/`net`) anywhere in the codebase — verifiable with
   a text search of the source.
 - **No credential or password handling.**
-- **No execution of other programs** — it doesn't use Node's `child_process` or
-  equivalent.
+- **No arbitrary command execution.** `child_process` is used for exactly two fixed,
+  auditable commands (the folder-picker helpers above) - never with dynamic or
+  user-supplied content, and for nothing else.
 - **No data leaves the machine.**
 
 ## Why it may show up as "unsigned"
