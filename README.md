@@ -110,10 +110,10 @@ next time you open the panel/project. You can pause/resume or remove a watch fro
 panel, adjust the check interval, and edit the list of file extensions it imports
 (defaults to common video/audio/image types; use `*` to import everything).
 
-**Subfolders are watched too, and mirrored as sub-bins.** If your watched folder is
-`IMAGES` and you drop files into `IMAGES\RAW`, Bin Watcher creates (or reuses) a `RAW`
-bin inside your `IMAGES` bin and imports there — matching the folder structure on disk,
-arbitrarily deep.
+**Subfolders are watched too, and mirrored as sub-bins by default.** If your watched
+folder is `IMAGES` and you drop files into `IMAGES\RAW`, Bin Watcher creates (or reuses)
+a `RAW` bin inside your `IMAGES` bin and imports there — matching the folder structure
+on disk, arbitrarily deep.
 
 **Deleting an item from a bin in Premiere is permanent** — Bin Watcher won't re-import
 it, even though the underlying file is still sitting in the watched folder. It only
@@ -122,9 +122,37 @@ want to undo that and bring back everything currently missing from a bin, click
 **Resync** on that watch — it forgets what's been "settled" for that watch and
 re-checks the bin's actual contents on the next poll.
 
-## Limitations (v1)
+Click **Sync Now** on a watch to check it immediately instead of waiting for the next
+automatic poll.
 
-- No image-sequence handling.
+### Advanced options
+
+Click **Advanced options** when adding a watch to reveal:
+
+- **Flatten subfolders into this bin** — instead of mirroring subfolders as matching
+  sub-bins, every file anywhere under the watched folder lands directly in the one bin
+  you picked. Note: if two files in different subfolders share the exact same name,
+  only one will end up imported (Premiere bin items must have unique names within a
+  bin) — mirroring avoids this by keeping same-named files in separate sub-bins.
+- **Import numbered image sequences as a single clip** — when on, a run of consecutively
+  numbered stills sharing a name, extension, and digit-padding (e.g. `shot_0001.exr`,
+  `shot_0002.exr`, … `shot_0100.exr`) gets imported as one sequence clip instead of a
+  hundred separate project items, the same way Premiere's own Import dialog handles
+  "Image Sequence." Off by default so existing behavior (import every file
+  individually) doesn't change under you. A sequence only imports once every frame in
+  it has finished copying.
+- **Use a path relative to the project file** — stores the watched folder as a path
+  relative to your `.prproj` file instead of an absolute path, so a template project
+  (with its footage folder alongside it) keeps working after being copied or moved to
+  a new location, or shared with someone else, as long as the relative layout between
+  the project file and the folder stays the same. Requires the project to already be
+  saved when you add the watch.
+- **Label imported items** — applies a Premiere label color to items right after Bin
+  Watcher imports them. Only touches items at the moment of import; if you change an
+  item's label afterward by hand, Bin Watcher won't overwrite it again.
+
+Each watch remembers its own advanced-option settings, shown as small tags under its
+entry in the list.
 
 ## Troubleshooting
 
@@ -170,8 +198,10 @@ Premiere's media/disk cache from Preferences > Media Cache, and reinstall from s
 
 ## Expanding later
 
-- **Image sequences**: extend the polling logic in `client/app.js` to detect and import
-  numbered-stills sequences as a single clip instead of individual files.
+- **After Effects support**: Watchtower supports both Premiere Pro and After Effects;
+  this only supports Premiere. AE uses a similar but distinct scripting API and its own
+  CEP panel, so this would mean a second `host/` script and a second manifest entry
+  rather than a small tweak - a deliberately separate, larger piece of work.
 
 Note: Premiere Pro's extensibility is gradually moving from CEP to Adobe's newer UXP
 framework (Adobe has said CEP/ExtendScript integrations remain supported into 2026).
