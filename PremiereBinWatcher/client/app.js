@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 9;
+    const APP_VERSION = 10;
 
     function log(msg) {
         try {
@@ -43,6 +43,17 @@
         if (browseBtn) browseBtn.disabled = true;
         if (addBtn) addBtn.disabled = true;
         return;
+    }
+
+    // Optional: used only to launch a native OS folder-picker (see
+    // browseForFolderNative below) so it reliably appears in front of
+    // Premiere. Not fatal if unavailable - falls back to ExtendScript's
+    // own Folder.selectDialog(), which can open behind Premiere's window.
+    let childProcess = null;
+    try {
+        childProcess = require("child_process");
+    } catch (e) {
+        // Fine - browseForFolderNative() checks for this and falls back.
     }
 
     const CONFIG_DIR = path.join(process.env.APPDATA || os.homedir(), "PremiereBinWatcher");
@@ -487,15 +498,93 @@
         }
     }
 
-    document.getElementById("browseBtn").addEventListener("click", () => {
-        log("Opening folder browser... (if no window appears, try Alt+Tab - it can open behind Premiere)");
-        evalScript("pbw_selectFolder()", (result) => {
-            log("Folder browser returned: " + JSON.stringify(result));
-            if (result) {
-                selectedFolder = result;
-                updateFolderLabel();
+    // Opens a native OS folder picker directly (bypassing ExtendScript's
+    // Folder.selectDialog(), which runs inside Premiere's own process and
+    // can open behind Premiere's main window instead of in front of it).
+    // Resolves to: a path string on success, "" if the user cancelled, or
+    // null if a native picker isn't available on this platform/setup (in
+    // which case the caller should fall back to pbw_selectFolder()).
+    function browseForFolderNative() {
+        return new Promise((resolve) => {
+            if (!childProcess) {
+                resolve(null);
+                return;
+            }
+
+            if (process.platform === "win32") {
+                const script = [
+                    "Add-Type -AssemblyName System.Windows.Forms",
+                    "$owner = New-Object System.Windows.Forms.Form",
+                    "$owner.TopMost = $true",
+                    "$owner.StartPosition = 'CenterScreen'",
+                    "$owner.WindowState = 'Minimized'",
+                    "$owner.ShowInTaskbar = $false",
+                    "$owner.Show()",
+                    "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
+                    "$dialog.Description = 'Select the folder to watch'",
+                    "if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {",
+                    "    Write-Output $dialog.SelectedPath",
+                    "}",
+                    "$owner.Dispose()"
+                ].join("`n");
+
+                childProcess.execFile(
+                    "powershell.exe",
+                    ["-NoProfile", "-NonInteractive", "-Command", script],
+                    { encoding: "utf8" },
+                    (err, stdout) => {
+                        if (err) {
+                            resolve(null);
+                            return;
+                        }
+                        resolve(stdout.trim());
+                    }
+                );
+            } else if (process.platform === "darwin") {
+                const script = 'POSIX path of (choose folder with prompt "Select the folder to watch")';
+                childProcess.execFile("osascript", ["-e", script], { encoding: "utf8" }, (err, stdout) => {
+                    if (err) {
+                        // Non-zero exit also covers the user clicking Cancel.
+                        resolve("");
+                        return;
+                    }
+                    resolve(stdout.trim());
+                });
+            } else {
+                resolve(null);
             }
         });
+    }
+
+    document.getElementById("browseBtn").addEventListener("click", async () => {
+        log("Opening folder browser...");
+
+        let result;
+        try {
+            result = await browseForFolderNative();
+        } catch (e) {
+            result = null;
+        }
+
+        if (result === null) {
+            // No native picker available - fall back to ExtendScript's own
+            // dialog, which can open behind Premiere's window.
+            log("Falling back to Premiere's folder browser... (if no window appears, try Alt+Tab)");
+            evalScript("pbw_selectFolder()", (fallbackResult) => {
+                log("Folder browser returned: " + JSON.stringify(fallbackResult));
+                if (fallbackResult) {
+                    selectedFolder = fallbackResult;
+                    updateFolderLabel();
+                }
+            });
+            return;
+        }
+
+        log("Folder browser returned: " + JSON.stringify(result));
+        if (result) {
+            selectedFolder = result;
+            updateFolderLabel();
+        }
     });
 
     function populateBinSelect(binPaths) {
