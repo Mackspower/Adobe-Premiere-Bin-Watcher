@@ -28,7 +28,7 @@ label {
     color: #aaa;
 }
 
-input[type="text"], input[type="number"] {
+input[type="text"], input[type="number"], select {
     width: 100%;
     background: #1e1e1e;
     border: 1px solid #444;
@@ -36,6 +36,37 @@ input[type="text"], input[type="number"] {
     padding: 5px 6px;
     border-radius: 3px;
     margin-bottom: 6px;
+}
+
+details.advanced {
+    margin: 4px 0 10px 0;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 6px 8px;
+}
+
+details.advanced summary {
+    cursor: pointer;
+    color: #ccc;
+    outline: none;
+}
+
+details.advanced label.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 0 0;
+    color: #ccc;
+    font-weight: normal;
+}
+
+details.advanced label.checkbox-row input {
+    margin: 0;
+    width: auto;
+}
+
+details.advanced select {
+    margin-top: 4px;
 }
 
 button {
@@ -108,6 +139,12 @@ button.danger {
 .watch-item .actions {
     display: flex;
     gap: 4px;
+}
+
+.watch-item .meta {
+    color: #7fa8cc;
+    font-size: 10px;
+    margin-top: 4px;
 }
 
 .status-dot {
