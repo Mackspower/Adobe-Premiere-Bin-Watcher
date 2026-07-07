@@ -94,7 +94,11 @@ run `bash packaging/build-dmg.sh` yourself) — must be run on macOS — to prod
 
 1. Click **Browse folder…** and pick the folder you want watched. This opens the OS's
    own folder picker (not Premiere's), so it should come to the front reliably; if it
-   ever doesn't, try Alt+Tab on Windows or Cmd+Tab on macOS.
+   ever doesn't, try Alt+Tab on Windows or Cmd+Tab on macOS. It also opens starting at
+   the last folder you picked, since most projects live under one consistent folder
+   structure. If you'd rather skip the picker, type or paste a path directly into the
+   box underneath it and press Enter, or pick one from the **Recent folders** dropdown
+   once you've used a couple.
 2. Pick an existing bin from the **Bin** dropdown (this lists every bin already in your
    project, including nested ones), or choose **+ New top-level bin…** and type a name
    for a bin that doesn't exist yet.

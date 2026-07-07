@@ -6,7 +6,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Bin Watcher</title>
-    <link rel="stylesheet" href="style.css?v=11">
+    <link rel="stylesheet" href="style.css?v=12">
 </head>
 <body>
     <h1>Bin Watcher</h1>
@@ -17,6 +17,10 @@
             <button id="browseBtn">Browse folder&hellip;</button>
             <span id="folderPath" class="empty">No folder selected</span>
         </div>
+        <input type="text" id="folderPathInput" placeholder="...or type/paste a folder path, then press Enter">
+        <select id="recentFoldersSelect" style="display:none;">
+            <option value="">Recent folders&hellip;</option>
+        </select>
         <label for="binSelect">Bin</label>
         <div class="row">
             <select id="binSelect" class="grow"></select>
@@ -63,7 +67,7 @@
         <div id="log"></div>
     </section>
 
-    <script src="cep-bridge.js?v=11"></script>
-    <script src="app.js?v=11"></script>
+    <script src="cep-bridge.js?v=12"></script>
+    <script src="app.js?v=12"></script>
 </body>
 </html>
