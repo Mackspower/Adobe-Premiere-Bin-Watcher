@@ -69,10 +69,24 @@ function pbw_sepFor(folderPath) {
  * Imports files into a bin, given a single JSON-encoded payload:
  *   { folder: "C:\\path\\to\\watched\\folder",
  *     files: ["a.jpg", "b.mov"],
- *     binPath: ["Footage", "Day1"] }
+ *     binPath: ["Footage", "Day1"],
+ *     importAsNumberedStills: false,
+ *     labelColorIndex: null }
  * (binPath is root-to-leaf - see pbw_resolveBinPath). Files already present
  * in the bin (matched by project item name) are skipped, so this is safe to
  * call repeatedly with overlapping file lists.
+ *
+ * importAsNumberedStills: when true, each entry in `files` should be the
+ * first frame of an image sequence (not a full frame list) - Premiere
+ * auto-detects and imports the rest of that sequence from disk, producing
+ * one clip per entry instead of one per frame.
+ *
+ * labelColorIndex: optional integer 0-15 (Premiere's label color palette -
+ * 0 Violet, 1 Iris, 2 Caribbean, 3 Lavender, 4 Cerulean, 5 Forest, 6 Rose,
+ * 7 Mango, 8 Purple, 9 Blue, 10 Teal, 11 Magenta, 12 Tan, 13 Green,
+ * 14 Brown, 15 Yellow). Applied only to items freshly imported this call,
+ * never to ones that were already present - so re-labeling something by
+ * hand afterward sticks.
  *
  * Returns a JSON string:
  *   { success: bool,
@@ -89,6 +103,8 @@ function pbw_importFiles(payloadJSON) {
         var folderPath = payload.folder;
         var fileNames = payload.files;
         var binPath = payload.binPath;
+        var importAsNumberedStills = !!payload.importAsNumberedStills;
+        var labelColorIndex = (typeof payload.labelColorIndex === "number") ? payload.labelColorIndex : null;
         var bin = pbw_resolveBinPath(binPath, true);
 
         var existing = {};
@@ -116,11 +132,26 @@ function pbw_importFiles(payloadJSON) {
         }
 
         if (toImportPaths.length > 0) {
-            var ok = app.project.importFiles(toImportPaths, true, bin, false);
+            var ok = app.project.importFiles(toImportPaths, true, bin, importAsNumberedStills);
             result.success = ok;
             if (ok) {
                 present = present.concat(toImportNames);
                 result.imported = toImportNames;
+
+                if (labelColorIndex !== null) {
+                    var afterImport = {};
+                    for (var k = 0; k < bin.children.numItems; k++) {
+                        afterImport[bin.children[k].name] = bin.children[k];
+                    }
+                    for (var m = 0; m < toImportNames.length; m++) {
+                        try {
+                            var newItem = afterImport[toImportNames[m]];
+                            if (newItem) newItem.setColorLabel(labelColorIndex);
+                        } catch (labelErr) {
+                            // Non-fatal - the import itself already succeeded.
+                        }
+                    }
+                }
             }
         }
         result.present = present;
@@ -129,6 +160,19 @@ function pbw_importFiles(payloadJSON) {
         result.error = e.toString();
     }
     return JSON.stringify(result);
+}
+
+/**
+ * Returns the path to the currently open/saved project file, or "" if the
+ * project hasn't been saved yet. Used to resolve watches stored as a path
+ * relative to the project file.
+ */
+function pbw_getProjectPath() {
+    try {
+        return app.project.path || "";
+    } catch (e) {
+        return "";
+    }
 }
 
 /**
