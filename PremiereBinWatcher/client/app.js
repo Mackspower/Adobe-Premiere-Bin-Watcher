@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 10;
+    const APP_VERSION = 11;
 
     function log(msg) {
         try {
@@ -512,28 +512,49 @@
             }
 
             if (process.platform === "win32") {
+                // TopMost alone only controls stacking order, not actual
+                // window focus/activation - explicitly calling the Win32
+                // SetForegroundWindow/BringWindowToTop APIs (via inline C#)
+                // is what actually forces this to claim focus. The C# blob
+                // is wrapped in PowerShell *single* quotes below, which are
+                // literal strings in PowerShell - the double quotes around
+                // "user32.dll" inside it need no escaping as a result.
+                const csharpSource =
+                    "using System; using System.Runtime.InteropServices; " +
+                    "public class PBWNative { " +
+                    '[DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr hWnd); ' +
+                    '[DllImport("user32.dll")] public static extern bool BringWindowToTop(IntPtr hWnd); ' +
+                    '[DllImport("user32.dll")] public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow); ' +
+                    "}";
+
                 const script = [
                     "Add-Type -AssemblyName System.Windows.Forms",
+                    "Add-Type -Language CSharp -TypeDefinition '" + csharpSource + "'",
                     "$owner = New-Object System.Windows.Forms.Form",
                     "$owner.TopMost = $true",
                     "$owner.StartPosition = 'CenterScreen'",
-                    "$owner.WindowState = 'Minimized'",
                     "$owner.ShowInTaskbar = $false",
+                    "$owner.Size = New-Object System.Drawing.Size(1,1)",
                     "$owner.Show()",
+                    "[PBWNative]::ShowWindow($owner.Handle, 9) | Out-Null",
+                    "[PBWNative]::BringWindowToTop($owner.Handle) | Out-Null",
+                    "[PBWNative]::SetForegroundWindow($owner.Handle) | Out-Null",
+                    "$owner.Activate()",
                     "$dialog = New-Object System.Windows.Forms.FolderBrowserDialog",
                     "$dialog.Description = 'Select the folder to watch'",
                     "if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {",
                     "    Write-Output $dialog.SelectedPath",
                     "}",
                     "$owner.Dispose()"
-                ].join("`n");
+                ].join("\n");
 
                 childProcess.execFile(
                     "powershell.exe",
                     ["-NoProfile", "-NonInteractive", "-Command", script],
                     { encoding: "utf8" },
-                    (err, stdout) => {
+                    (err, stdout, stderr) => {
                         if (err) {
+                            log("Native folder picker (Windows) failed: " + (stderr || err.message).split("\n")[0]);
                             resolve(null);
                             return;
                         }
