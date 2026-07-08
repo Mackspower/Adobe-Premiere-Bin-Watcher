@@ -114,11 +114,13 @@ run `bash packaging/build-dmg.sh` yourself) — must be run on macOS — to prod
 Click **Refresh** next to the Bin dropdown if you've created a new bin since opening the
 panel and want it to show up in the list.
 
-Watches are saved to `%APPDATA%\PremiereBinWatcher\config.json` (Windows) or
-`~/PremiereBinWatcher/config.json` (macOS) and reload automatically
-next time you open the panel/project. You can pause/resume or remove a watch from the
-panel, adjust the check interval, and edit the list of file extensions it imports
-(defaults to common video/audio/image types; use `*` to import everything).
+Watches are saved to `%APPDATA%\PremiereBinWatcher\config-ppro.json` (Windows) or
+`~/PremiereBinWatcher/config-ppro.json` (macOS) — After Effects keeps its own separate
+`config-aeft.json` alongside it, so watches you set up in one app never show up or run
+in the other. Both reload automatically next time you open the panel/project. You can
+pause/resume or remove a watch from the panel, adjust the check interval, and edit the
+list of file extensions it imports (defaults to common video/audio/image types; use `*`
+to import everything).
 
 **Subfolders are watched too, and mirrored as sub-bins by default.** If your watched
 folder is `IMAGES` and you drop files into `IMAGES\RAW`, Bin Watcher creates (or reuses)

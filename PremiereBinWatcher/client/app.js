@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 13;
+    const APP_VERSION = 14;
 
     function log(msg) {
         try {
@@ -56,15 +56,26 @@
         // Fine - browseForFolderNative() checks for this and falls back.
     }
 
+    const IS_AFTER_EFFECTS = !!(window.PBW && window.PBW.hostAppId && window.PBW.hostAppId() === "AEFT");
+
     const CONFIG_DIR = path.join(process.env.APPDATA || os.homedir(), "PremiereBinWatcher");
-    const CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
+    // Watches are host-specific - a bin path only means something inside a
+    // Premiere project, a folder path only inside an After Effects one - so
+    // each host gets its own settings file. Otherwise a watch created in
+    // Premiere would also try to run inside whatever After Effects project
+    // happens to be open (and vice versa), creating unwanted bins/folders
+    // and importing into the wrong project entirely.
+    const CONFIG_FILE = path.join(CONFIG_DIR, IS_AFTER_EFFECTS ? "config-aeft.json" : "config-ppro.json");
+    // Pre-1.2 versions (Premiere-only) stored everything here - migrated
+    // into config-ppro.json below the first time Premiere loads after this
+    // change, so existing watches aren't lost. After Effects never used this
+    // file, so it correctly starts empty there instead of inheriting it.
+    const LEGACY_CONFIG_FILE = path.join(CONFIG_DIR, "config.json");
 
     const DEFAULT_EXTENSIONS =
         "mp4,mov,mxf,avi,mkv,braw,r3d,ari,dpx,exr,tga,mp3,wav,aif,aiff,m4a,jpg,jpeg,png,tif,tiff,psd,gif";
 
     const NEW_BIN_VALUE = "__new__";
-
-    const IS_AFTER_EFFECTS = !!(window.PBW && window.PBW.hostAppId && window.PBW.hostAppId() === "AEFT");
 
     // After Effects calls its Project panel folders "folders" (Premiere
     // calls them "bins") - swapped into the handful of user-facing strings
@@ -124,11 +135,22 @@
     }
 
     function loadState() {
+        let legacyMigrated = false;
         try {
             if (fs.existsSync(CONFIG_FILE)) {
                 const raw = fs.readFileSync(CONFIG_FILE, "utf8");
                 const parsed = JSON.parse(raw);
                 state = Object.assign({}, state, parsed);
+            } else if (!IS_AFTER_EFFECTS && fs.existsSync(LEGACY_CONFIG_FILE)) {
+                // One-time migration: pre-1.2 versions only supported
+                // Premiere and stored everything in the shared config.json.
+                // After Effects never wrote to it, so it correctly starts
+                // empty there instead of inheriting Premiere's watches.
+                const raw = fs.readFileSync(LEGACY_CONFIG_FILE, "utf8");
+                const parsed = JSON.parse(raw);
+                state = Object.assign({}, state, parsed);
+                legacyMigrated = true;
+                log("Moved your existing watches to Premiere-specific settings (now kept separate from After Effects).");
             }
         } catch (e) {
             log("Failed to load saved settings: " + e.message);
@@ -137,7 +159,7 @@
         // Migrate watches saved by older versions (single "bin" name string
         // instead of a binPath array, for top-level-only bins; and default
         // values for settings added later).
-        let migrated = false;
+        let migrated = legacyMigrated;
         state.watches.forEach((w) => {
             if (!w.binPath) {
                 w.binPath = [w.bin || "Untitled"];

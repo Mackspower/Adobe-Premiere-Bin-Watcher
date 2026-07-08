@@ -16,10 +16,11 @@ depending on which app is running, the code that talks to the open project).
 ## What it can access
 
 - **Filesystem**: reads only the folders a user explicitly adds as a "watch" inside the
-  panel, and reads/writes one settings file that stores that watch list
-  (`%APPDATA%\PremiereBinWatcher\config.json` on Windows,
-  `~/PremiereBinWatcher/config.json` on macOS). It does not scan, read, or write
-  anything else on disk.
+  panel, and reads/writes one settings file per app that stores that app's watch list -
+  `config-ppro.json` for Premiere, `config-aeft.json` for After Effects, both in
+  `%APPDATA%\PremiereBinWatcher\` on Windows or `~/PremiereBinWatcher/` on macOS (kept
+  separate so a watch set up in one app never runs in the other). It does not scan,
+  read, or write anything else on disk.
 - **The open Premiere Pro or After Effects project**: through Adobe's own scripting API
   (ExtendScript), it can read the project's bin/folder structure and import files into
   it — the same capability any script or panel for that app has by design.
