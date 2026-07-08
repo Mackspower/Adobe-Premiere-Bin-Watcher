@@ -11,7 +11,7 @@
 (function () {
     "use strict";
 
-    const APP_VERSION = 12;
+    const APP_VERSION = 13;
 
     function log(msg) {
         try {
@@ -64,12 +64,24 @@
 
     const NEW_BIN_VALUE = "__new__";
 
-    // Premiere Pro's label color palette, index order matches
-    // ProjectItem.setColorLabel()'s accepted integer argument.
-    const LABEL_COLORS = [
-        "Violet", "Iris", "Caribbean", "Lavender", "Cerulean", "Forest", "Rose",
-        "Mango", "Purple", "Blue", "Teal", "Magenta", "Tan", "Green", "Brown", "Yellow"
-    ];
+    const IS_AFTER_EFFECTS = !!(window.PBW && window.PBW.hostAppId && window.PBW.hostAppId() === "AEFT");
+
+    // After Effects calls its Project panel folders "folders" (Premiere
+    // calls them "bins") - swapped into the handful of user-facing strings
+    // below so the panel reads as native to whichever host it's running in.
+    const BIN_WORD = IS_AFTER_EFFECTS ? "folder" : "bin";
+    const BIN_WORD_CAP = IS_AFTER_EFFECTS ? "Folder" : "Bin";
+
+    // Premiere Pro's label color palette is fixed, index order matching
+    // ProjectItem.setColorLabel()'s accepted integer argument. After Effects
+    // lets each user rename and recolor all 16 of its labels from its own
+    // Preferences, so showing Premiere's names there would just be wrong for
+    // most people - generic numbered labels are the honest option instead.
+    const LABEL_COLORS = IS_AFTER_EFFECTS
+        ? ["Label 1", "Label 2", "Label 3", "Label 4", "Label 5", "Label 6", "Label 7", "Label 8",
+           "Label 9", "Label 10", "Label 11", "Label 12", "Label 13", "Label 14", "Label 15", "Label 16"]
+        : ["Violet", "Iris", "Caribbean", "Lavender", "Cerulean", "Forest", "Rose",
+           "Mango", "Purple", "Blue", "Teal", "Magenta", "Tan", "Green", "Brown", "Yellow"];
 
     let state = {
         watches: [], // { id, folder, binPath: [names...], binLabel, enabled }
@@ -377,6 +389,12 @@
                 } else if (!parsed.success) {
                     log(`Import failed for "${binLabel}": ${parsed.error || "unknown error"}`);
                 }
+                // Some hosts (e.g. After Effects, which imports one file at a
+                // time) can partially succeed - surface that even though
+                // parsed.success is still true, instead of silently dropping it.
+                if (parsed.success && parsed.error) {
+                    log(`"${binLabel}": ${parsed.error}`);
+                }
 
                 // Anything the host confirms is now in the bin (freshly
                 // imported or already there) is "settled" - stop asking
@@ -510,7 +528,7 @@
                     <div class="actions">
                         <button data-action="sync" data-id="${w.id}" title="Check this watch right now instead of waiting for the timer">Sync Now</button>
                         <button data-action="toggle" data-id="${w.id}">${w.enabled ? "Pause" : "Resume"}</button>
-                        <button data-action="resync" data-id="${w.id}" title="Re-add anything you've deleted from this bin since it was last imported">Resync</button>
+                        <button data-action="resync" data-id="${w.id}" title="Re-add anything you've deleted from this ${BIN_WORD} since it was last imported">Resync</button>
                         <button data-action="remove" data-id="${w.id}" class="danger">Remove</button>
                     </div>
                 </div>
@@ -720,7 +738,7 @@
 
         const newOpt = document.createElement("option");
         newOpt.value = NEW_BIN_VALUE;
-        newOpt.textContent = "+ New top-level bin…";
+        newOpt.textContent = `+ New top-level ${BIN_WORD}…`;
         select.appendChild(newOpt);
 
         if (previousValue && Array.from(select.options).some((o) => o.value === previousValue)) {
@@ -744,7 +762,7 @@
                 const binPaths = JSON.parse(result);
                 populateBinSelect(binPaths);
             } catch (e) {
-                log("Couldn't load bin list from the project: " + result);
+                log(`Couldn't load ${BIN_WORD} list from the project: ` + result);
                 populateBinSelect([]);
             }
         });
@@ -764,14 +782,14 @@
         if (select.value === NEW_BIN_VALUE) {
             const newName = document.getElementById("newBinNameInput").value.trim();
             if (!newName) {
-                log("Enter a name for the new bin before adding a watch.");
+                log(`Enter a name for the new ${BIN_WORD} before adding a watch.`);
                 return;
             }
             binPath = [newName];
         } else if (select.value) {
             binPath = JSON.parse(select.value);
         } else {
-            log("Pick a bin before adding a watch.");
+            log(`Pick a ${BIN_WORD} before adding a watch.`);
             return;
         }
 
@@ -810,7 +828,7 @@
         saveState();
         render();
         startWatch(watch);
-        log(`Watching "${selectedFolder}" -> bin "${binLabel}"`);
+        log(`Watching "${selectedFolder}" -> ${BIN_WORD} "${binLabel}"`);
 
         selectedFolder = "";
         updateFolderLabel();
@@ -847,7 +865,7 @@
             delete state.importHistory[watch.id];
             delete pendingSizes[watch.id];
             saveState();
-            log(`Cleared import history for "${watch.binLabel}" - anything missing from the bin will be re-added.`);
+            log(`Cleared import history for "${watch.binLabel}" - anything missing from the ${BIN_WORD} will be re-added.`);
             pollWatch(watch);
         } else if (action === "sync") {
             log(`Checking "${watch.binLabel}" now...`);
@@ -878,12 +896,22 @@
         });
     }
 
+    // Applies the handful of static HTML strings that differ by host
+    // (elsewhere, dynamic strings just interpolate BIN_WORD/BIN_WORD_CAP
+    // directly - see the click handlers and log() calls above).
+    function applyHostWording() {
+        document.getElementById("binSelectLabel").textContent = BIN_WORD_CAP;
+        document.getElementById("refreshBinsBtn").title = `Reload ${BIN_WORD} list from the open project`;
+        document.getElementById("newBinNameInput").placeholder = `New top-level ${BIN_WORD} name`;
+    }
+
     // ---- init ----
 
-    log(`Bin Watcher starting... (build ${APP_VERSION})`);
+    log(`Bin Watcher starting... (build ${APP_VERSION}${IS_AFTER_EFFECTS ? ", After Effects" : ""})`);
     loadState();
     document.getElementById("pollInput").value = state.pollSeconds;
     document.getElementById("extInput").value = state.extensions;
+    applyHostWording();
     populateLabelColorSelect();
     populateRecentFolders();
     render();

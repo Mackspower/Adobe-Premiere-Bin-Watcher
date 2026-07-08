@@ -1,4 +1,4 @@
-# Installs the Bin Watcher CEP panel for Adobe Premiere Pro on Windows.
+# Installs the Bin Watcher CEP panel for Adobe Premiere Pro and After Effects on Windows.
 # Run this from PowerShell (no admin rights required).
 
 $ErrorActionPreference = "Stop"
@@ -23,10 +23,10 @@ if (Test-Path $dest) {
 Copy-Item $source $dest -Recurse
 Write-Host "Copied extension to $dest"
 
-# Premiere Pro loads unsigned/dev extensions only when the matching CEP
-# runtime has PlayerDebugMode enabled. Different Premiere Pro versions use
-# different CEP runtime versions, so we enable it for the ones in common use
-# (roughly Premiere Pro 2021 through 2025).
+# Premiere Pro and After Effects both load unsigned/dev extensions only when
+# the matching CEP runtime has PlayerDebugMode enabled. Different app
+# versions use different CEP runtime versions, so we enable it for the ones
+# in common use (roughly 2021 through 2025 releases).
 $csxsVersions = @("7", "8", "9", "10", "11", "12")
 foreach ($v in $csxsVersions) {
     $regPath = "HKCU:\Software\Adobe\CSXS.$v"
@@ -38,4 +38,4 @@ foreach ($v in $csxsVersions) {
 Write-Host "Enabled debug mode for CEP runtimes (CSXS.7 - CSXS.12)"
 
 Write-Host ""
-Write-Host "Done. Restart Premiere Pro, then open the panel via Window > Extensions > Bin Watcher."
+Write-Host "Done. Restart Premiere Pro and/or After Effects, then open the panel via Window > Extensions > Bin Watcher."
