@@ -22,19 +22,19 @@ trade-off.
 
 ## How it works
 
-This is built as a small **CEP panel** — the same extension framework Watchtower itself
+This is built as a small **CEP panel**, the same extension framework Watchtower itself
 uses, and the one both Premiere Pro and After Effects support:
 
-- `client/` — the panel UI (HTML/CSS/JS), running with Node.js enabled so it can poll
-  folders directly with `fs.readdir`/`fs.stat`. Identical in both apps — it talks to
+- `client/`: the panel UI (HTML/CSS/JS), running with Node.js enabled so it can poll
+  folders directly with `fs.readdir`/`fs.stat`. Identical in both apps: it talks to
   whichever host it's running in through the same handful of function names, so there's
   no Premiere-only or AE-only code here.
-- `host/dispatch.jsx` — the entry point the extension manifest actually loads. It
+- `host/dispatch.jsx`: the entry point the extension manifest actually loads. It
   detects which app it's running in and routes to the matching implementation:
   `host/ppro.jsx` (Premiere, `app.project.importFiles(...)` into a bin) or
   `host/aeft.jsx` (After Effects, `app.project.importFile(...)` into a folder). Both
   create the target bin/folder if it doesn't exist yet.
-- `CSXS/manifest.xml` — the extension manifest that registers the panel with both apps.
+- `CSXS/manifest.xml`: the extension manifest that registers the panel with both apps.
 
 Every few seconds (configurable) the panel lists each watched folder, and imports any
 file whose size has stayed the same across two checks in a row (so it doesn't try to
