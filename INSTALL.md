@@ -32,15 +32,15 @@ a couple of prompts. Pick your platform below.
 *(You only need the right-click trick the very first time. If you ever reinstall, you
 can just double-click normally.)*
 
-### Step 3: Restart Premiere Pro
+### Step 3: Restart Premiere Pro and/or After Effects
 
-If Premiere Pro is already open, quit it completely — **Premiere Pro menu → Quit
-Premiere Pro**, or press Cmd+Q — then open it again. (Just closing the project window
-isn't enough; it needs to fully restart.)
+Works the same in both apps — install once, use it in whichever you have open. If
+either is already open, quit it completely (its menu → Quit, or Cmd+Q) then open it
+again. (Just closing the project window isn't enough; it needs to fully restart.)
 
 ### Step 4: Open the panel
 
-In Premiere Pro's menu bar at the top of the screen, click:
+In the app's menu bar at the top of the screen, click:
 
 **Window → Extensions → Bin Watcher**
 
@@ -66,13 +66,14 @@ A small panel appears. That's it — you're installed.
 2. A small setup wizard opens. Click through it (the default options are already
    correct — no need to change anything) until it finishes.
 
-### Step 3: Restart Premiere Pro
+### Step 3: Restart Premiere Pro and/or After Effects
 
-If Premiere Pro is already open, close it completely and reopen it.
+Works the same in both apps — install once, use it in whichever you have open. If
+either is already open, close it completely and reopen it.
 
 ### Step 4: Open the panel
 
-In Premiere Pro's menu bar, click:
+In the app's menu bar, click:
 
 **Window → Extensions → Bin Watcher**
 
