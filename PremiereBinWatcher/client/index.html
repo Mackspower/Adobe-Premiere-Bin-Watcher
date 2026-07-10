@@ -6,7 +6,7 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>Bin Watcher</title>
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=14">
 </head>
 <body>
     <h1>Bin Watcher</h1>
@@ -17,12 +17,37 @@
             <button id="browseBtn">Browse folder&hellip;</button>
             <span id="folderPath" class="empty">No folder selected</span>
         </div>
-        <label for="binSelect">Bin</label>
+        <input type="text" id="folderPathInput" placeholder="...or type/paste a folder path, then press Enter">
+        <select id="recentFoldersSelect" style="display:none;">
+            <option value="">Recent folders&hellip;</option>
+        </select>
+        <label for="binSelect" id="binSelectLabel">Bin</label>
         <div class="row">
             <select id="binSelect" class="grow"></select>
             <button id="refreshBinsBtn" title="Reload bin list from the open project">Refresh</button>
         </div>
         <input type="text" id="newBinNameInput" placeholder="New top-level bin name" style="display:none;">
+
+        <details class="advanced">
+            <summary>Advanced options</summary>
+            <label class="checkbox-row">
+                <input type="checkbox" id="flattenCheckbox">
+                Flatten subfolders together (instead of mirroring as sub-folders)
+            </label>
+            <label class="checkbox-row">
+                <input type="checkbox" id="sequencesCheckbox">
+                Import numbered image sequences as a single clip
+            </label>
+            <label class="checkbox-row">
+                <input type="checkbox" id="relativePathCheckbox">
+                Use a path relative to the project file (for templates)
+            </label>
+            <label for="labelColorSelect">Label imported items</label>
+            <select id="labelColorSelect">
+                <option value="">No label</option>
+            </select>
+        </details>
+
         <button id="addBtn" class="primary">+ Add Watch</button>
     </section>
 
@@ -42,7 +67,7 @@
         <div id="log"></div>
     </section>
 
-    <script src="cep-bridge.js?v=8"></script>
-    <script src="app.js?v=8"></script>
+    <script src="cep-bridge.js?v=14"></script>
+    <script src="app.js?v=14"></script>
 </body>
 </html>

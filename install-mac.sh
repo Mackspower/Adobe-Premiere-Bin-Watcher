@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installs the Bin Watcher CEP panel for Adobe Premiere Pro on macOS.
+# Installs the Bin Watcher CEP panel for Adobe Premiere Pro and After Effects on macOS.
 # Run from Terminal: bash install-mac.sh   (no sudo needed)
 
 set -euo pipefail
@@ -20,14 +20,14 @@ rm -rf "$DEST"
 cp -R "$SOURCE" "$DEST"
 echo "Copied extension to $DEST"
 
-# Premiere Pro loads unsigned/dev extensions only when the matching CEP
-# runtime has PlayerDebugMode enabled. Different Premiere Pro versions use
-# different CEP runtime versions, so we enable it for the ones in common use
-# (roughly Premiere Pro 2021 through 2025).
+# Premiere Pro and After Effects both load unsigned/dev extensions only when
+# the matching CEP runtime has PlayerDebugMode enabled. Different app
+# versions use different CEP runtime versions, so we enable it for the ones
+# in common use (roughly 2021 through 2025 releases).
 for v in 7 8 9 10 11 12; do
     defaults write "com.adobe.CSXS.$v" PlayerDebugMode 1
 done
 echo "Enabled debug mode for CEP runtimes (CSXS.7 - CSXS.12)"
 
 echo ""
-echo "Done. Restart Premiere Pro, then open the panel via Window > Extensions > Bin Watcher."
+echo "Done. Restart Premiere Pro and/or After Effects, then open the panel via Window > Extensions > Bin Watcher."

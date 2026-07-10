@@ -5,22 +5,33 @@ handed to an IT/security reviewer before installing it on a managed machine.
 
 ## What it is
 
-A Premiere Pro panel (a CEP extension) that watches folders you choose and imports new
-files into a matching project bin automatically. Everything is in this repository,
-MIT licensed, and readable as plain text — HTML, JavaScript, and Adobe ExtendScript,
-nothing compiled or obfuscated. See `PremiereBinWatcher/client/app.js` (the panel logic)
-and `PremiereBinWatcher/host/ppro.jsx` (the code that talks to Premiere's project).
+A CEP extension for Premiere Pro and After Effects that watches folders you choose and
+imports new files into a matching project bin (Premiere) or folder (After Effects)
+automatically. Everything is in this repository, MIT licensed, and readable as plain
+text — HTML, JavaScript, and Adobe ExtendScript, nothing compiled or obfuscated. See
+`PremiereBinWatcher/client/app.js` (the panel logic, identical in both apps) and
+`PremiereBinWatcher/host/dispatch.jsx` (routes to `host/ppro.jsx` or `host/aeft.jsx`
+depending on which app is running, the code that talks to the open project).
 
 ## What it can access
 
 - **Filesystem**: reads only the folders a user explicitly adds as a "watch" inside the
-  panel, and reads/writes one settings file that stores that watch list
-  (`%APPDATA%\PremiereBinWatcher\config.json` on Windows,
-  `~/PremiereBinWatcher/config.json` on macOS). It does not scan, read, or write
-  anything else on disk.
-- **Premiere Pro's open project**: through Adobe's own scripting API (ExtendScript), it
-  can read the project's bin structure and import files into it — the same capability
-  any Premiere script or panel has by design.
+  panel, and reads/writes one settings file per app that stores that app's watch list -
+  `config-ppro.json` for Premiere, `config-aeft.json` for After Effects, both in
+  `%APPDATA%\PremiereBinWatcher\` on Windows or `~/PremiereBinWatcher/` on macOS (kept
+  separate so a watch set up in one app never runs in the other). It does not scan,
+  read, or write anything else on disk.
+- **The open Premiere Pro or After Effects project**: through Adobe's own scripting API
+  (ExtendScript), it can read the project's bin/folder structure and import files into
+  it — the same capability any script or panel for that app has by design.
+- **One native OS helper process, only when you click "Browse folder…"**: to work
+  around the app's own folder-picker dialog sometimes opening behind its main
+  window, the panel launches the OS's built-in folder picker directly instead -
+  `powershell.exe` on Windows (a fixed, inline script using .NET's
+  `FolderBrowserDialog`, see `browseForFolderNative()` in `client/app.js`) or
+  `osascript` on macOS (a fixed `choose folder` AppleScript command). Both commands are
+  hardcoded in the source, never built from user input or anything downloaded, and do
+  nothing beyond showing that one dialog and returning the chosen path.
 
 ## What it does NOT do
 
@@ -29,8 +40,9 @@ and `PremiereBinWatcher/host/ppro.jsx` (the code that talks to Premiere's projec
   Node network module (`http`/`https`/`net`) anywhere in the codebase — verifiable with
   a text search of the source.
 - **No credential or password handling.**
-- **No execution of other programs** — it doesn't use Node's `child_process` or
-  equivalent.
+- **No arbitrary command execution.** `child_process` is used for exactly two fixed,
+  auditable commands (the folder-picker helpers above) - never with dynamic or
+  user-supplied content, and for nothing else.
 - **No data leaves the machine.**
 
 ## Why it may show up as "unsigned"
@@ -39,11 +51,11 @@ Adobe extensions normally need to be signed by a recognized certificate authorit
 load without extra configuration. This is a personal/free tool without a paid
 commercial signing certificate. Two install paths exist:
 
-1. **`install-windows.ps1` / `install-mac.sh`** — enables Premiere's developer/debug
-   flag (`PlayerDebugMode`), which allows Premiere to load unsigned CEP extensions in
-   general (not scoped to just this one). Simplest, but relaxes a real security
-   control machine-wide.
-2. **`packaging/`** — builds a self-signed, trusted `.zxp` package instead, so Premiere
+1. **`install-windows.ps1` / `install-mac.sh`** — enables Adobe's developer/debug
+   flag (`PlayerDebugMode`), which allows Premiere Pro and After Effects to load
+   unsigned CEP extensions in general (not scoped to just this one). Simplest, but
+   relaxes a real security control machine-wide.
+2. **`packaging/`** — builds a self-signed, trusted `.zxp` package instead, so the app
    loads Bin Watcher via a valid signature without the debug flag enabled at all. See
    `packaging/README.md` for the full walkthrough.
 

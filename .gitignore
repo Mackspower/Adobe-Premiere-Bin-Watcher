@@ -2,3 +2,6 @@
 packaging/cert/
 packaging/dist/
 packaging/tools/
+
+# macOS Finder metadata
+.DS_Store
